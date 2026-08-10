@@ -16,11 +16,13 @@ calls the Discord HTTP API on your behalf.
 
 ## Status
 
-Phase 2 (passive HUD) is done: `npm start` floats a click-through,
-always-on-top corner HUD showing voice channel members with live speaking
-indicators. It appears when you join voice and hides when you leave.
-Controller summon + the interactive panel come in later phases.
-`npm run spike` (Phase 1) remains as a console debugging tool.
+Phase 3 (summon + actions) is done: hold **Back + Start** on any connected
+controller (~400 ms) and the interactive panel opens over the game, taking
+focus so the game stops receiving input. D-pad to move, **A** to activate,
+**B** (or the chord again) to close and hand focus back. Mute, deafen,
+disconnect, hide-HUD and quit all work from the couch. The channel switcher
+lands in Phase 4. `npm run spike` (Phase 1) remains as a console debugging
+tool; `F10` toggles the panel from a keyboard for testing.
 
 ## Requirements
 
