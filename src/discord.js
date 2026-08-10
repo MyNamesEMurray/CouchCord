@@ -72,6 +72,8 @@ class DiscordBridge extends EventEmitter {
       connected: this.connected,
       authDeclined: this.authDeclined,
       channel: this.channel ? { ...this.channel } : null,
+      lastGuildId: this.lastGuildId, // lets the server picker preselect sensibly
+
       self: { ...this.self },
       members: [...this.members.values()]
         .map((m) => ({
@@ -105,14 +107,19 @@ class DiscordBridge extends EventEmitter {
     await this._req("SELECT_VOICE_CHANNEL", { channel_id: channelId, force: true });
   }
 
-  // Voice channels of the current guild (or the last one we were in, so
-  // disconnect -> reconnect works). Returns null when no guild is known yet.
-  // ponytail: single-guild only. Upgrade path: GET_GUILDS -> guild picker view
-  // in the panel, then GET_CHANNELS per selection.
-  async listVoiceChannels() {
-    const guildId = (this.channel && this.channel.guildId) || this.lastGuildId;
-    if (!guildId) return null;
-    const data = await this._req("GET_CHANNELS", { guild_id: guildId });
+  // Every guild the logged-in user is a member of.
+  async listGuilds() {
+    const data = await this._req("GET_GUILDS");
+    return (data.guilds || []).map((g) => ({ id: g.id, name: g.name }));
+  }
+
+  // Voice channels of the given guild — or, with no argument, the current one
+  // (falling back to the last one we were in, so disconnect -> reconnect
+  // works). Returns null when no guild can be determined.
+  async listVoiceChannels(guildId) {
+    const target = guildId || (this.channel && this.channel.guildId) || this.lastGuildId;
+    if (!target) return null;
+    const data = await this._req("GET_CHANNELS", { guild_id: target });
     return (data.channels || [])
       .filter((c) => c.type === GUILD_VOICE)
       .map((c) => ({ id: c.id, name: c.name, current: !!this.channel && c.id === this.channel.id }));

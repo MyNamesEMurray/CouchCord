@@ -207,14 +207,14 @@ body.panel-open {
 }
 
 .big-btn.focused,
-.channel-list li.focused {
+.list-rows li.focused {
   border-color: #5865f2;
   background: rgba(88, 101, 242, 0.22);
   color: #fff;
 }
 
 .big-btn.focused {
-  transform: scale(1.02); /* not on channel rows — it overflows the scroll box */
+  transform: scale(1.02); /* not on list rows — it overflows the scroll box */
 }
 
 .big-btn.danger.focused {
@@ -222,13 +222,21 @@ body.panel-open {
   background: rgba(242, 63, 67, 0.2);
 }
 
-.channel-view {
+.list-view {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.channel-list {
+.list-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b5bac1;
+}
+
+.list-rows {
   list-style: none;
   max-height: 17rem;
   overflow-y: auto;
@@ -238,16 +246,16 @@ body.panel-open {
   gap: 0.4rem;
 }
 
-.channel-list::-webkit-scrollbar {
+.list-rows::-webkit-scrollbar {
   width: 0.4rem;
 }
 
-.channel-list::-webkit-scrollbar-thumb {
+.list-rows::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 0.2rem;
 }
 
-.channel-list li {
+.list-rows li {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -261,14 +269,21 @@ body.panel-open {
   border-radius: 0.7rem;
 }
 
-.channel-list .current-tag {
+.list-rows .row-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-rows .current-tag {
   margin-left: auto;
+  flex: none;
   font-size: 0.9rem;
   font-weight: 700;
   color: #23a55a;
 }
 
-.channel-hint {
+.list-hint {
   font-size: 1.05rem;
   color: #b5bac1;
   padding: 0.5rem 0.2rem;

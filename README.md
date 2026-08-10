@@ -77,9 +77,10 @@ on-screen hints switch to the matching labels (✕/○ on PlayStation, B/A on
 Nintendo) for whichever pad you used last.
 
 Panel actions: **Mute · Deafen · Disconnect · Voice Channels · Hide HUD ·
-Quit CouchCord**. The channel switcher lists the current server's voice
-channels (the last server is remembered, so you can disconnect and rejoin
-from the couch).
+Quit CouchCord**. **Voice Channels** first lists every server you're a
+member of (the one you're connected to is tagged and pre-focused), then that
+server's voice channels — so you can hop to any channel on any of your
+servers, or disconnect and rejoin, without touching a keyboard.
 
 While the panel is open it takes keyboard/controller focus, so Steam Input
 stops routing your pad to the game; closing it hands focus straight back.
@@ -107,8 +108,6 @@ Created from `config.example.json` on first run.
   titles and for Big Picture use).
 - The RPC connection works for the Discord account that owns the app ID —
   personal use, not distribution.
-- One guild at a time: the channel switcher shows the server you're (or were
-  last) connected to.
 - Very exotic pads that SDL's controller database doesn't know stay
   invisible to CouchCord.
 - No text chat, no notifications, no settings UI — `config.json` is the
@@ -139,9 +138,9 @@ Big Picture:
 1. HUD sits in the corner, speaking rings light up as people talk.
 2. Hold Back + Start → panel opens, game stops seeing the pad.
 3. Mute → HUD shows 🔇; Unmute; Deafen → 🙉; Undeafen.
-4. Voice Channels → pick another channel with the d-pad → A joins it.
-5. Disconnect → HUD hides. Panel → Voice Channels still lists the server →
-   rejoin.
+4. Voice Channels → pick a server, then a channel with the d-pad → A joins
+   it (works across servers).
+5. Disconnect → HUD hides. Panel → Voice Channels → rejoin.
 6. B closes the panel → the game receives controller input again.
 
 ## Development notes

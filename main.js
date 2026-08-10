@@ -190,8 +190,15 @@ ipcMain.on("action", (_e, { type, payload } = {}) => {
   }
 });
 
-ipcMain.handle("listChannels", () =>
-  bridge.listVoiceChannels().catch((err) => {
+ipcMain.handle("listGuilds", () =>
+  bridge.listGuilds().catch((err) => {
+    logFail("server list")(err);
+    return null;
+  })
+);
+
+ipcMain.handle("listChannels", (_e, guildId) =>
+  bridge.listVoiceChannels(guildId).catch((err) => {
     logFail("channel list")(err);
     return null;
   })

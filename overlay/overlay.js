@@ -11,7 +11,10 @@ const panel = document.getElementById("panel");
 const panelStatus = document.getElementById("panel-status");
 const panelMembers = document.getElementById("panel-members");
 const viewMain = document.getElementById("view-main");
-const viewChannels = document.getElementById("view-channels");
+const viewList = document.getElementById("view-list");
+const listTitle = document.getElementById("list-title");
+const listRows = document.getElementById("list-rows");
+const listHint = document.getElementById("list-hint");
 const panelHints = document.getElementById("panel-hints");
 
 // Button-hint glyphs per controller family. Positional: "accept" is always
@@ -23,10 +26,12 @@ const GLYPHS = {
 };
 
 let state = null;
-let view = "main"; // "main" | "channels"
+let view = "main"; // "main" | "servers" | "channels"
 let focusIdx = 0;
 let focusables = []; // [{ el, activate }] for the current view
-let channels = undefined; // undefined = loading, null = no guild known yet, [] = fetched
+let guilds = undefined; // undefined = loading, null = fetch failed, [] = fetched
+let channels = undefined; // same convention, for the selected guild
+let selectedGuild = null; // { id, name } while in the channels view
 
 api.onState((s) => {
   const wasOpen = state && state.panelOpen;
@@ -62,6 +67,13 @@ function handleNav(action) {
 
   if (action === "back") {
     if (view === "channels") {
+      // Back to the server picker, focus restored to the server we came from.
+      view = "servers";
+      focusIdx = Array.isArray(guilds)
+        ? Math.max(0, guilds.findIndex((g) => selectedGuild && g.id === selectedGuild.id))
+        : 0;
+      render();
+    } else if (view === "servers") {
       view = "main";
       focusIdx = 0;
       render();
@@ -172,9 +184,9 @@ function renderPanel() {
   );
 
   viewMain.classList.toggle("hidden", view !== "main");
-  viewChannels.classList.toggle("hidden", view !== "channels");
+  viewList.classList.toggle("hidden", view === "main");
   if (view === "main") renderMainView();
-  else renderChannelsView();
+  else renderListView();
   renderHints();
 }
 
@@ -199,7 +211,7 @@ function mainButtons() {
     {
       icon: "🔀",
       label: "Voice Channels",
-      act: openChannels,
+      act: openServers,
     },
     {
       icon: "👁️",
@@ -234,54 +246,81 @@ function renderMainView() {
   applyFocus();
 }
 
-function openChannels() {
+function openServers() {
+  view = "servers";
+  focusIdx = 0;
+  guilds = undefined;
+  render();
+  api.listGuilds().then((list) => {
+    if (view !== "servers") return; // user backed out while loading
+    guilds = list;
+    if (Array.isArray(list)) {
+      // Land on the server you're connected to (or were last connected to).
+      const homeId = (state.channel && state.channel.guildId) || state.lastGuildId;
+      focusIdx = Math.max(0, list.findIndex((g) => g.id === homeId));
+    }
+    render();
+  });
+}
+
+function openChannels(guild) {
   view = "channels";
+  selectedGuild = guild;
   focusIdx = 0;
   channels = undefined;
   render();
-  api.listChannels().then((list) => {
-    if (view !== "channels") return; // user backed out while loading
+  api.listChannels(guild.id).then((list) => {
+    if (view !== "channels" || !selectedGuild || selectedGuild.id !== guild.id) return;
     channels = list;
     if (Array.isArray(list)) focusIdx = Math.max(0, list.findIndex((c) => c.current));
     render();
   });
 }
 
-function renderChannelsView() {
-  const listEl = document.getElementById("channel-list");
-  const hintEl = document.getElementById("channel-hint");
+// Shared renderer for the two drill-down levels: pick a server, then one of
+// its voice channels.
+function renderListView() {
+  const isServers = view === "servers";
+  const data = isServers ? guilds : channels;
+  listTitle.textContent = isServers ? "Choose a server" : selectedGuild ? selectedGuild.name : "";
 
   let hintText = null;
-  if (channels === undefined) hintText = "Loading channels…";
-  else if (channels === null) hintText = "Join a voice channel from Discord once — after that CouchCord can switch and rejoin from here.";
-  else if (channels.length === 0) hintText = "No voice channels in this server.";
+  if (data === undefined) hintText = isServers ? "Loading servers…" : "Loading channels…";
+  else if (data === null) hintText = "Discord didn't answer — close and try again.";
+  else if (data.length === 0) hintText = isServers ? "No servers found." : "No voice channels in this server.";
 
-  hintEl.classList.toggle("hidden", !hintText);
-  if (hintText) hintEl.textContent = hintText;
+  listHint.classList.toggle("hidden", !hintText);
+  if (hintText) listHint.textContent = hintText;
 
-  const list = Array.isArray(channels) ? channels : [];
-  focusIdx = Math.min(focusIdx, Math.max(0, list.length - 1));
-  focusables = list.map((c) => {
+  const rows = Array.isArray(data) ? data : [];
+  focusIdx = Math.min(focusIdx, Math.max(0, rows.length - 1));
+  focusables = rows.map((item) => {
     const li = document.createElement("li");
-    const name = document.createElement("span");
-    name.textContent = `🔊 ${c.name}`;
-    li.appendChild(name);
-    if (c.current) {
+    const label = document.createElement("span");
+    label.className = "row-label";
+    label.textContent = isServers ? `🌐 ${item.name}` : `🔊 ${item.name}`;
+    li.appendChild(label);
+    const isCurrent = isServers
+      ? state.channel && state.channel.guildId === item.id
+      : item.current;
+    if (isCurrent) {
       const tag = document.createElement("span");
       tag.className = "current-tag";
       tag.textContent = "CONNECTED";
       li.appendChild(tag);
     }
-    const activate = () => {
-      api.action("join", c.id);
-      view = "main";
-      focusIdx = 0;
-      render();
-    };
+    const activate = isServers
+      ? () => openChannels(item)
+      : () => {
+          api.action("join", item.id);
+          view = "main";
+          focusIdx = 0;
+          render();
+        };
     li.addEventListener("click", activate);
     return { el: li, activate };
   });
-  listEl.replaceChildren(...focusables.map((f) => f.el));
+  listRows.replaceChildren(...focusables.map((f) => f.el));
   applyFocus();
 }
 
@@ -290,7 +329,7 @@ function renderHints() {
   panelHints.replaceChildren(
     hint("D-pad", "Move"),
     hint(g.accept, "Select"),
-    hint(g.back, view === "channels" ? "Back" : "Close"),
+    hint(g.back, view === "main" ? "Close" : "Back"),
     hint("⌂", "Hold chord to close")
   );
 }
