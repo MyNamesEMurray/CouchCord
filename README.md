@@ -172,12 +172,20 @@ downloaded installer ("More info" → "Run anyway"). Code signing is a
 paid-certificate step you can add later via electron-builder's `win.sign*`
 options.
 
-**Releases build themselves**: publishing a GitHub release runs
+**Releases build themselves**: pushing a `v*` tag runs
 `.github/workflows/release.yml`, which builds the installer on a Windows
-runner and attaches `CouchCord-Setup-<version>.exe` to that release. The
-job fails early if the release tag doesn't match the `package.json` version
-(bump with `npm version <x.y.z> --no-git-tag-version` before tagging). You
-can also run the workflow manually from the Actions tab to get the
+runner, creates the GitHub release (using `release-notes/<tag>.md` when
+present, generated notes otherwise), and attaches
+`CouchCord-Setup-<version>.exe`. Publishing a release by hand triggers the
+same build. The job fails early if the tag doesn't match the
+`package.json` version — the flow is:
+
+```
+npm version 0.2.0 --no-git-tag-version
+git commit -am "v0.2.0" && git tag v0.2.0 && git push && git push --tags
+```
+
+You can also run the workflow manually from the Actions tab to get the
 installer as a downloadable artifact without cutting a release.
 
 ## Brand

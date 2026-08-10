@@ -2,11 +2,13 @@ name: Build installer
 
 on:
   release:
-    types: [published]
+    types: [published] # hand-made releases still build + attach
+  push:
+    tags: ["v*"] # pushing a version tag creates the release itself
   workflow_dispatch: # manual test runs — builds the installer as a workflow artifact
 
 permissions:
-  contents: write # lets the job attach the installer to the release
+  contents: write # create the release / attach the installer
 
 jobs:
   windows-installer:
@@ -19,16 +21,28 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
       # The installer's version comes from package.json — catch a mismatched
       # tag before shipping an exe that claims a different version.
       - name: Check tag matches package.json version
-        if: github.event_name == 'release'
+        if: steps.tag.outputs.tag != ''
         shell: bash
         run: |
           pkg="v$(node -p "require('./package.json').version")"
-          tag="${{ github.event.release.tag_name }}"
+          tag="${{ steps.tag.outputs.tag }}"
           if [ "$pkg" != "$tag" ]; then
-            echo "Release tag $tag does not match package.json version $pkg." >&2
+            echo "Tag $tag does not match package.json version $pkg." >&2
             echo "Bump the version in package.json (npm version --no-git-tag-version) and retag." >&2
             exit 1
           fi
@@ -37,12 +51,32 @@ jobs:
 
       - run: npm run dist
 
-      - name: Attach installer to the release
-        if: github.event_name == 'release'
+      # Tag-push path: create the release if it doesn't exist yet. Releases
+      # created with GITHUB_TOKEN don't re-trigger this workflow, so the
+      # 'release: published' trigger can't cause a second run.
+      - name: Create release if missing
+        if: github.event_name == 'push'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/CouchCord-Setup-*.exe --clobber
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="${{ steps.tag.outputs.tag }}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag already exists"
+          elif [ -f "release-notes/$tag.md" ]; then
+            gh release create "$tag" --title "CouchCord $tag" --notes-file "release-notes/$tag.md"
+          else
+            gh release create "$tag" --title "CouchCord $tag" --generate-notes
+          fi
+
+      - name: Attach installer to the release
+        if: steps.tag.outputs.tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ steps.tag.outputs.tag }}" dist/CouchCord-Setup-*.exe --clobber
 
       - name: Upload installer as workflow artifact
         uses: actions/upload-artifact@v4
