@@ -218,7 +218,9 @@ function renderPanel() {
   if (!state.panelOpen) return;
 
   panelStatus.textContent = !state.connected
-    ? "Discord not detected"
+    ? state.fatalError
+      ? "Discord authorization failed — see the error window"
+      : "Discord not detected"
     : state.channel
       ? `🔊 ${state.channel.name}`
       : "Not in a voice channel";

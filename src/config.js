@@ -102,4 +102,4 @@ const tokenStore = {
   },
 };
 
-module.exports = { loadConfig, saveCredentials, tokenStore, CONFIG_PATH };
+module.exports = { loadConfig, saveCredentials, tokenStore, CONFIG_PATH, DATA_DIR };

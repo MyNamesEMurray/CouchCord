@@ -1,5 +1,6 @@
 node_modules/
 dist/
+couchcord.log*
 # Local credentials + cached Discord authorization — never commit these
 config.json
 token.json

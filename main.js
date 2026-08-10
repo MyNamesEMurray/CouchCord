@@ -7,9 +7,14 @@ process.env.SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS = process.env.SDL_JOYSTICK_ALLO
 
 const path = require("node:path");
 const { app, BrowserWindow, dialog, ipcMain, screen, shell, globalShortcut } = require("electron");
-const { loadConfig, saveCredentials, tokenStore, CONFIG_PATH } = require("./src/config");
+const { loadConfig, saveCredentials, tokenStore, CONFIG_PATH, DATA_DIR } = require("./src/config");
+const { createLogger } = require("./src/log");
 const { DiscordBridge } = require("./src/discord");
 const { ControllerInput } = require("./src/controller");
+
+const logger = createLogger(DATA_DIR);
+const log = (line) => logger.log(`[couchcord] ${line}`);
+log(`CouchCord ${app.getVersion()} starting (packaged: ${app.isPackaged})`);
 
 let config = null;
 try {
@@ -18,13 +23,14 @@ try {
   if (err.code !== "NEEDS_SETUP") {
     // A real error (e.g. corrupt config.json) — installed builds have no
     // console, so a blocking dialog is the only way it reaches the user.
-    console.error(err.message);
+    log(err.message);
     try {
       dialog.showErrorBox("CouchCord", err.message);
     } catch {}
     app.exit(1);
     process.exit(1);
   }
+  log("No credentials yet — opening the setup wizard");
   // Missing credentials: fall through to the first-run setup wizard.
 }
 
@@ -233,10 +239,48 @@ function runOverlay() {
     updateVisibility();
   }
 
-  bridge.on("log", (line) => console.log(`[couchcord] ${line}`));
+  bridge.on("log", log);
   bridge.on("update", pushState);
 
-  controllers.on("log", (line) => console.log(`[couchcord] ${line}`));
+  // Fresh authorization means a first run (or re-auth) — open the panel so
+  // the user can see CouchCord actually running instead of a hidden window.
+  bridge.on("authorized", () => {
+    if (!ui.panelOpen) openPanel();
+  });
+
+  // Interactive authorization failed; retrying would loop the Authorize
+  // popup forever, so the bridge stopped. Tell the user what happened.
+  bridge.on("fatal", (message) => {
+    dialog
+      .showMessageBox({
+        type: "error",
+        title: "CouchCord",
+        message: "Discord authorization failed",
+        detail:
+          `${message}\n\n` +
+          "Common causes:\n" +
+          "• The Discord desktop app is logged into a different account than the one that owns your Discord application — they must be the same account.\n" +
+          "• The Client Secret was pasted wrong — on the app's OAuth2 page use Reset Secret and copy the new value (Redo setup below).\n\n" +
+          `Full log: ${logger.file}`,
+        buttons: ["Try again", "Redo setup", "Quit"],
+        defaultId: 0,
+        cancelId: 2,
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          app.relaunch();
+          app.exit(0);
+        } else if (response === 1) {
+          saveCredentials({ clientId: "", clientSecret: "" }); // wizard opens on relaunch
+          app.relaunch();
+          app.exit(0);
+        } else {
+          app.quit();
+        }
+      });
+  });
+
+  controllers.on("log", log);
   controllers.on("chord", togglePanel);
   controllers.on("nav", (action) => {
     if (ui.panelOpen && win && !win.isDestroyed()) win.webContents.send("nav", action);
@@ -249,7 +293,7 @@ function runOverlay() {
     }
   });
 
-  const logFail = (what) => (err) => console.log(`[couchcord] ${what} failed: ${err.message}`);
+  const logFail = (what) => (err) => log(`${what} failed: ${err.message}`);
 
   ipcMain.on("action", (_e, { type, payload } = {}) => {
     switch (type) {

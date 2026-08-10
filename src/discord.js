@@ -22,6 +22,15 @@ const RETRY_MIN_MS = 2000;
 const RETRY_MAX_MS = 30000;
 const TOKEN_SAVE_INTERVAL_MS = 60000;
 
+// Errors from @discordjs/rest carry the useful part in rawError; RPC errors
+// in code/message. Flatten whatever we got into one loggable line.
+function describeError(err) {
+  if (!err) return "unknown error";
+  const code = err.code !== undefined && err.code !== null ? ` [code ${err.code}]` : "";
+  const raw = err.rawError ? ` ${JSON.stringify(err.rawError)}` : "";
+  return `${err.message || String(err)}${code}${raw}`;
+}
+
 // Talks to the already-running Discord desktop client over its local RPC (IPC)
 // pipe — CouchCord is a companion, not a Discord client. Emits:
 //   "update"          – voice state changed; call snapshot() for the new state
@@ -35,7 +44,7 @@ class DiscordBridge extends EventEmitter {
     this.tokenStore = tokenStore;
 
     this.connected = false;
-    this.authDeclined = false;
+    this.fatalError = null; // set when interactive authorization failed — no more retries
     this.userId = null;
     this.channel = null; // { id, name, guildId }
     this.lastGuildId = null; // survives disconnect so we can rejoin
@@ -70,7 +79,7 @@ class DiscordBridge extends EventEmitter {
   snapshot() {
     return {
       connected: this.connected,
-      authDeclined: this.authDeclined,
+      fatalError: this.fatalError,
       channel: this.channel ? { ...this.channel } : null,
       lastGuildId: this.lastGuildId, // lets the server picker preselect sensibly
 
@@ -136,7 +145,7 @@ class DiscordBridge extends EventEmitter {
   }
 
   _scheduleRetry() {
-    if (this._stopped || this.authDeclined) return;
+    if (this._stopped || this.fatalError) return;
     this._connectSoon(this._retryDelay);
     this._retryDelay = Math.min(this._retryDelay * 2, RETRY_MAX_MS);
   }
@@ -156,26 +165,51 @@ class DiscordBridge extends EventEmitter {
       });
     }
 
-    try {
-      const cached = this.tokenStore ? this.tokenStore.load() : null;
-      if (!cached) this._log("Connecting to Discord — approve the authorization popup in Discord (first run only)");
-      try {
-        await client.login(cached ? { scopes: SCOPES, refreshToken: cached } : { scopes: SCOPES });
-      } catch (err) {
-        // Only distrust the cached token when we actually reached Discord —
-        // a dead pipe (Discord not running) says nothing about the token.
-        if (cached && client.isConnected) {
-          this._log("Cached Discord authorization was rejected; will ask again");
-          if (this.tokenStore) this.tokenStore.clear();
-        }
-        if (/denied|declin/i.test(String(err && err.message))) {
-          this.authDeclined = true;
-          this._log("Authorization was declined in Discord. Restart CouchCord to try again.");
-          this._emitUpdate();
-        }
-        throw err;
-      }
+    const teardown = async () => {
+      if (this._client === client) this._client = null;
+      await client.destroy().catch(() => {});
+      this._resetVoiceState(); // a half-finished attempt must not leave stale state behind
+    };
 
+    const cached = this.tokenStore ? this.tokenStore.load() : null;
+    try {
+      if (cached) {
+        await client.login({ scopes: SCOPES, refreshToken: cached });
+      } else {
+        this._log("Asking Discord for authorization — watch for the popup in Discord");
+        await client.login({ scopes: SCOPES });
+      }
+    } catch (err) {
+      const reachedDiscord = client.isConnected;
+      await teardown();
+      if (!reachedDiscord) {
+        // Discord isn't running (or its pipe is gone) — keep waiting for it.
+        this._log(`Discord not reachable (${describeError(err)}); retrying in ${this._retryDelay / 1000}s`);
+        this._emitUpdate();
+        this._scheduleRetry();
+        return;
+      }
+      if (cached) {
+        // The cached grant was rejected while Discord was reachable — drop it
+        // and go interactive once.
+        this._log(`Cached Discord authorization was rejected (${describeError(err)}); asking for a fresh one`);
+        if (this.tokenStore) this.tokenStore.clear();
+        this._emitUpdate();
+        this._connectSoon(1000);
+        return;
+      }
+      // Interactive authorization failed. Do NOT retry: every retry re-opens
+      // the Authorize popup, which loops forever when something is wrong
+      // (wrong secret, Discord logged into an account that doesn't own the
+      // app, scope rejected, ...). Surface it and stop.
+      this.fatalError = describeError(err);
+      this._log(`Discord authorization failed: ${this.fatalError}`);
+      this._emitUpdate();
+      this.emit("fatal", this.fatalError);
+      return;
+    }
+
+    try {
       this._retryDelay = RETRY_MIN_MS;
       this.connected = true;
       this.userId = client.user ? client.user.id : null;
@@ -184,11 +218,13 @@ class DiscordBridge extends EventEmitter {
       await this._subscribeAll();
       this._log(`Connected to Discord as ${client.user ? client.user.username : "unknown"}`);
       this._emitUpdate();
+      if (!cached) this.emit("authorized"); // fresh grant — let the UI show itself
     } catch (err) {
-      if (this._client === client) this._client = null;
-      await client.destroy().catch(() => {});
-      this._resetVoiceState(); // a half-finished attempt must not leave stale state behind
-      if (!this.authDeclined) this._log(`Discord not reachable (${err && err.message ? err.message : err}); retrying in ${this._retryDelay / 1000}s`);
+      // Authenticated fine but the initial subscribes/queries failed — the
+      // grant is cached now, so a plain retry is safe (no popup involved).
+      clearInterval(this._tokenTimer);
+      await teardown();
+      this._log(`Discord session setup failed (${describeError(err)}); retrying in ${this._retryDelay / 1000}s`);
       this._emitUpdate();
       this._scheduleRetry();
     }

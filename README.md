@@ -135,8 +135,20 @@ Created from `config.example.json` on first run.
 - **"Discord not reachable … retrying"** — start the Discord desktop app
   (not the browser client). CouchCord reconnects by itself, including after
   Discord restarts or updates.
-- **Authorization popup again?** Delete `token.json` if auth ever gets
-  stuck; declining the popup stops CouchCord until you restart it.
+- **"Discord authorization failed" after clicking Authorize** — the two
+  usual causes: the Discord desktop app is logged into a **different
+  account** than the one that owns your Discord application (they must
+  match), or the **Client Secret** was pasted wrong (use Reset Secret on
+  the OAuth2 page and copy the new value — the error dialog's *Redo setup*
+  button reopens the wizard). CouchCord asks for authorization at most once
+  per run, so it will never loop the popup.
+- **Where's the UI after setup?** After the first successful authorization
+  the panel opens by itself. From then on the HUD only appears while you're
+  in a voice channel — that's normal.
+- **Reporting a problem?** Every run writes `couchcord.log` next to
+  `config.json` (`%APPDATA%\CouchCord` for installed builds, the repo root
+  for checkouts) — paste it into an issue.
+- Delete `token.json` if authorization ever gets stuck.
 - **HUD doesn't show over the game** — the game is in exclusive fullscreen;
   switch it to borderless (see Limitations).
 - **Chord does nothing** — check the pad works elsewhere; try `npm run
