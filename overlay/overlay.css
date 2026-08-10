@@ -374,6 +374,16 @@ body.setup-mode {
   gap: 0.45rem;
 }
 
+.setup-steps code {
+  font-family: Consolas, monospace;
+  font-size: 0.95em;
+  color: #ffb59f;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0.3rem;
+  padding: 0.05rem 0.35rem;
+  user-select: text; /* let people copy the redirect URL */
+}
+
 .setup-label {
   display: flex;
   flex-direction: column;

@@ -75,9 +75,10 @@
       </p>
 
       <ol class="setup-steps">
-        <li><button id="open-portal" class="setup-btn">Open the Discord Developer Portal</button> and sign in.</li>
+        <li><button id="open-portal" class="setup-btn">Open the Discord Developer Portal</button> and sign in <b>with the same account your Discord app uses</b>.</li>
         <li>Click <b>New Application</b> and name it anything (e.g. "CouchCord").</li>
-        <li>On the <b>OAuth2</b> page, copy the <b>Client ID</b> and <b>Client Secret</b> (click <b>Reset Secret</b> if it's hidden) and paste them below.</li>
+        <li>On the <b>OAuth2</b> page, under <b>Redirects</b> click <b>Add Redirect</b>, enter exactly <code>http://127.0.0.1</code> and <b>Save Changes</b>.</li>
+        <li>Still on <b>OAuth2</b>: copy the <b>Client ID</b> and <b>Client Secret</b> (click <b>Reset Secret</b> if it's hidden) and paste them below.</li>
       </ol>
 
       <label class="setup-label">

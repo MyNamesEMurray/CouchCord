@@ -20,7 +20,13 @@ const GUILD_VOICE = 2; // channel type
 
 const RETRY_MIN_MS = 2000;
 const RETRY_MAX_MS = 30000;
-const TOKEN_SAVE_INTERVAL_MS = 60000;
+
+// Discord now requires a redirect_uri in RPC authorization requests (the
+// client errors with 'invalid_request: missing "redirect_uri"' without one),
+// and the value must be registered on the app's OAuth2 page — the README and
+// setup wizard tell users to add exactly this one.
+const REDIRECT_URI = "http://127.0.0.1";
+const TOKEN_URL = "https://discord.com/api/oauth2/token";
 
 // Errors from @discordjs/rest carry the useful part in rawError; RPC errors
 // in code/message. Flatten whatever we got into one loggable line.
@@ -58,8 +64,6 @@ class DiscordBridge extends EventEmitter {
     this._retryDelay = RETRY_MIN_MS;
     this._channelSubs = [];
     this._channelOp = Promise.resolve(); // serializes channel (re)subscribes
-    this._tokenTimer = null;
-    this._savedToken = null;
   }
 
   start() {
@@ -69,8 +73,6 @@ class DiscordBridge extends EventEmitter {
   async stop() {
     this._stopped = true;
     clearTimeout(this._retryTimer);
-    clearInterval(this._tokenTimer);
-    this._saveTokenIfRotated();
     const client = this._client;
     this._client = null;
     if (client) await client.destroy().catch(() => {});
@@ -150,8 +152,51 @@ class DiscordBridge extends EventEmitter {
     this._retryDelay = Math.min(this._retryDelay * 2, RETRY_MAX_MS);
   }
 
+  // OAuth token grants, done with fetch instead of the RPC library: Discord
+  // requires redirect_uri in both the RPC AUTHORIZE args and the code
+  // exchange now, and the library supports neither. Saves the (rotated)
+  // refresh token as a side effect.
+  async _fetchToken(params) {
+    const res = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        ...params,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.access_token) {
+      const err = new Error(`token exchange failed: ${data.error_description || data.error || `HTTP ${res.status}`}`);
+      err.code = data.error || res.status;
+      throw err;
+    }
+    if (data.refresh_token && this.tokenStore) this.tokenStore.save(data.refresh_token);
+    return data.access_token;
+  }
+
   async _connect() {
     if (this._stopped) return;
+
+    // Refresh a cached grant first — pure HTTPS, no popup, no client needed.
+    const cached = this.tokenStore ? this.tokenStore.load() : null;
+    let accessToken = null;
+    if (cached) {
+      try {
+        accessToken = await this._fetchToken({ grant_type: "refresh_token", refresh_token: cached });
+      } catch (err) {
+        if (err.name === "TypeError" || /fetch failed/i.test(String(err.message))) {
+          // Network problem, not a rejected grant — keep the token, try later.
+          this._log(`Discord token refresh unreachable (${describeError(err)}); retrying in ${this._retryDelay / 1000}s`);
+          this._scheduleRetry();
+          return;
+        }
+        this._log(`Cached Discord authorization was rejected (${describeError(err)}); asking for a fresh one`);
+        if (this.tokenStore) this.tokenStore.clear();
+      }
+    }
+
     const client = new Client({
       clientId: this.clientId,
       clientSecret: this.clientSecret,
@@ -171,13 +216,28 @@ class DiscordBridge extends EventEmitter {
       this._resetVoiceState(); // a half-finished attempt must not leave stale state behind
     };
 
-    const cached = this.tokenStore ? this.tokenStore.load() : null;
+    let interactive = false;
     try {
-      if (cached) {
-        await client.login({ scopes: SCOPES, refreshToken: cached });
+      if (accessToken) {
+        await client.login({ scopes: SCOPES, accessToken });
       } else {
+        interactive = true;
+        await client.connect();
         this._log("Asking Discord for authorization — watch for the popup in Discord");
-        await client.login({ scopes: SCOPES });
+        const res = await client.request("AUTHORIZE", {
+          scopes: SCOPES,
+          client_id: this.clientId,
+          redirect_uri: REDIRECT_URI,
+          prompt: "consent",
+        });
+        const code = res && res.data ? res.data.code : null;
+        if (!code) throw new Error("Discord authorization returned no code");
+        accessToken = await this._fetchToken({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: REDIRECT_URI,
+        });
+        await client.login({ scopes: SCOPES, accessToken });
       }
     } catch (err) {
       const reachedDiscord = client.isConnected;
@@ -189,9 +249,9 @@ class DiscordBridge extends EventEmitter {
         this._scheduleRetry();
         return;
       }
-      if (cached) {
-        // The cached grant was rejected while Discord was reachable — drop it
-        // and go interactive once.
+      if (!interactive) {
+        // A refreshed token was rejected at AUTHENTICATE — distrust the
+        // grant and go interactive once.
         this._log(`Cached Discord authorization was rejected (${describeError(err)}); asking for a fresh one`);
         if (this.tokenStore) this.tokenStore.clear();
         this._emitUpdate();
@@ -200,8 +260,8 @@ class DiscordBridge extends EventEmitter {
       }
       // Interactive authorization failed. Do NOT retry: every retry re-opens
       // the Authorize popup, which loops forever when something is wrong
-      // (wrong secret, Discord logged into an account that doesn't own the
-      // app, scope rejected, ...). Surface it and stop.
+      // (missing redirect URI, wrong secret, Discord logged into an account
+      // that doesn't own the app, ...). Surface it and stop.
       this.fatalError = describeError(err);
       this._log(`Discord authorization failed: ${this.fatalError}`);
       this._emitUpdate();
@@ -213,16 +273,13 @@ class DiscordBridge extends EventEmitter {
       this._retryDelay = RETRY_MIN_MS;
       this.connected = true;
       this.userId = client.user ? client.user.id : null;
-      this._saveTokenIfRotated();
-      this._tokenTimer = setInterval(() => this._saveTokenIfRotated(), TOKEN_SAVE_INTERVAL_MS);
       await this._subscribeAll();
       this._log(`Connected to Discord as ${client.user ? client.user.username : "unknown"}`);
       this._emitUpdate();
-      if (!cached) this.emit("authorized"); // fresh grant — let the UI show itself
+      if (interactive) this.emit("authorized"); // fresh grant — let the UI show itself
     } catch (err) {
       // Authenticated fine but the initial subscribes/queries failed — the
       // grant is cached now, so a plain retry is safe (no popup involved).
-      clearInterval(this._tokenTimer);
       await teardown();
       this._log(`Discord session setup failed (${describeError(err)}); retrying in ${this._retryDelay / 1000}s`);
       this._emitUpdate();
@@ -248,23 +305,12 @@ class DiscordBridge extends EventEmitter {
   _onDisconnected(client) {
     if (this._client !== client) return; // stale client from a torn-down attempt
     this._client = null;
-    clearInterval(this._tokenTimer);
     this._resetVoiceState();
     client.destroy().catch(() => {});
     this._log("Discord went away; waiting for it to come back");
     this._emitUpdate();
     this._retryDelay = RETRY_MIN_MS;
     this._scheduleRetry();
-  }
-
-  // Discord rotates refresh tokens on every refresh; persist the latest so the
-  // next launch can still authenticate silently.
-  _saveTokenIfRotated() {
-    const token = this._client ? this._client.refreshToken : null;
-    if (token && token !== this._savedToken && this.tokenStore) {
-      this.tokenStore.save(token);
-      this._savedToken = token;
-    }
   }
 
   // ---- voice state tracking -------------------------------------------------

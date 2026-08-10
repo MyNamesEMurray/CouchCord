@@ -40,12 +40,16 @@ CouchCord opens a setup screen with a button to the Discord Developer
 Portal and paste boxes for the two values — no file editing needed. The
 steps it guides you through:
 
-1. Go to <https://discord.com/developers/applications> and click
+1. Go to <https://discord.com/developers/applications> (signed in as the
+   **same account your Discord desktop app uses**) and click
    **New Application**. Name it anything (e.g. `CouchCord`).
-2. On the **OAuth2** page, copy the **Client ID** and the **Client Secret**
+2. On the **OAuth2** page, under **Redirects**, click **Add Redirect**,
+   enter exactly `http://127.0.0.1`, and **Save Changes**. (Discord
+   requires a registered redirect for the authorization handshake.)
+3. Still on **OAuth2**: copy the **Client ID** and the **Client Secret**
    (click **Reset Secret** if it's hidden).
-3. Paste both into the setup screen and hit **Save & Start**.
-4. CouchCord restarts; Discord pops an authorization dialog — click
+4. Paste both into the setup screen and hit **Save & Start**.
+5. CouchCord restarts; Discord pops an authorization dialog — click
    **Authorize**. The grant is cached in `token.json`, so this only happens
    once.
 
@@ -135,13 +139,17 @@ Created from `config.example.json` on first run.
 - **"Discord not reachable … retrying"** — start the Discord desktop app
   (not the browser client). CouchCord reconnects by itself, including after
   Discord restarts or updates.
-- **"Discord authorization failed" after clicking Authorize** — the two
-  usual causes: the Discord desktop app is logged into a **different
-  account** than the one that owns your Discord application (they must
-  match), or the **Client Secret** was pasted wrong (use Reset Secret on
-  the OAuth2 page and copy the new value — the error dialog's *Redo setup*
-  button reopens the wizard). CouchCord asks for authorization at most once
-  per run, so it will never loop the popup.
+- **"Discord authorization failed"** — the usual causes, in order:
+  1. `invalid_request: missing "redirect_uri"` or an invalid-redirect
+     error: your Discord application has **no Redirect URI registered** —
+     add exactly `http://127.0.0.1` under OAuth2 → Redirects and save.
+  2. The Discord desktop app is logged into a **different account** than
+     the one that owns your Discord application (they must match).
+  3. The **Client Secret** was pasted wrong (use Reset Secret on the
+     OAuth2 page and copy the new value — the error dialog's *Redo setup*
+     button reopens the wizard).
+  CouchCord asks for authorization at most once per run, so it will never
+  loop the popup.
 - **Where's the UI after setup?** After the first successful authorization
   the panel opens by itself. From then on the HUD only appears while you're
   in a voice channel — that's normal.

@@ -259,6 +259,7 @@ function runOverlay() {
         detail:
           `${message}\n\n` +
           "Common causes:\n" +
+          "• Your Discord application has no Redirect URI: on its OAuth2 page, under Redirects, click Add Redirect, enter exactly http://127.0.0.1 and Save Changes — then Try again.\n" +
           "• The Discord desktop app is logged into a different account than the one that owns your Discord application — they must be the same account.\n" +
           "• The Client Secret was pasted wrong — on the app's OAuth2 page use Reset Secret and copy the new value (Redo setup below).\n\n" +
           `Full log: ${logger.file}`,
