@@ -26,6 +26,7 @@ let state = null;
 let view = "main"; // "main" | "channels"
 let focusIdx = 0;
 let focusables = []; // [{ el, activate }] for the current view
+let channels = undefined; // undefined = loading, null = no guild known yet, [] = fetched
 
 api.onState((s) => {
   const wasOpen = state && state.panelOpen;
@@ -173,6 +174,7 @@ function renderPanel() {
   viewMain.classList.toggle("hidden", view !== "main");
   viewChannels.classList.toggle("hidden", view !== "channels");
   if (view === "main") renderMainView();
+  else renderChannelsView();
   renderHints();
 }
 
@@ -193,6 +195,11 @@ function mainButtons() {
       label: "Disconnect",
       danger: true,
       act: () => api.action("disconnect"),
+    },
+    {
+      icon: "🔀",
+      label: "Voice Channels",
+      act: openChannels,
     },
     {
       icon: "👁️",
@@ -224,6 +231,57 @@ function renderMainView() {
     return { el, activate: b.act };
   });
   viewMain.replaceChildren(...focusables.map((f) => f.el));
+  applyFocus();
+}
+
+function openChannels() {
+  view = "channels";
+  focusIdx = 0;
+  channels = undefined;
+  render();
+  api.listChannels().then((list) => {
+    if (view !== "channels") return; // user backed out while loading
+    channels = list;
+    if (Array.isArray(list)) focusIdx = Math.max(0, list.findIndex((c) => c.current));
+    render();
+  });
+}
+
+function renderChannelsView() {
+  const listEl = document.getElementById("channel-list");
+  const hintEl = document.getElementById("channel-hint");
+
+  let hintText = null;
+  if (channels === undefined) hintText = "Loading channels…";
+  else if (channels === null) hintText = "Join a voice channel from Discord once — after that CouchCord can switch and rejoin from here.";
+  else if (channels.length === 0) hintText = "No voice channels in this server.";
+
+  hintEl.classList.toggle("hidden", !hintText);
+  if (hintText) hintEl.textContent = hintText;
+
+  const list = Array.isArray(channels) ? channels : [];
+  focusIdx = Math.min(focusIdx, Math.max(0, list.length - 1));
+  focusables = list.map((c) => {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = `🔊 ${c.name}`;
+    li.appendChild(name);
+    if (c.current) {
+      const tag = document.createElement("span");
+      tag.className = "current-tag";
+      tag.textContent = "CONNECTED";
+      li.appendChild(tag);
+    }
+    const activate = () => {
+      api.action("join", c.id);
+      view = "main";
+      focusIdx = 0;
+      render();
+    };
+    li.addEventListener("click", activate);
+    return { el: li, activate };
+  });
+  listEl.replaceChildren(...focusables.map((f) => f.el));
   applyFocus();
 }
 

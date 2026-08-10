@@ -211,7 +211,10 @@ body.panel-open {
   border-color: #5865f2;
   background: rgba(88, 101, 242, 0.22);
   color: #fff;
-  transform: scale(1.02);
+}
+
+.big-btn.focused {
+  transform: scale(1.02); /* not on channel rows — it overflows the scroll box */
 }
 
 .big-btn.danger.focused {
@@ -229,9 +232,19 @@ body.panel-open {
   list-style: none;
   max-height: 17rem;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.channel-list::-webkit-scrollbar {
+  width: 0.4rem;
+}
+
+.channel-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.2rem;
 }
 
 .channel-list li {

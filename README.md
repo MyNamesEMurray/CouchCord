@@ -16,12 +16,10 @@ calls the Discord HTTP API on your behalf.
 
 ## Status
 
-Phase 3 (summon + actions) is done: hold **Back + Start** on any connected
-controller (~400 ms) and the interactive panel opens over the game, taking
-focus so the game stops receiving input. D-pad to move, **A** to activate,
-**B** (or the chord again) to close and hand focus back. Mute, deafen,
-disconnect, hide-HUD and quit all work from the couch. The channel switcher
-lands in Phase 4. `npm run spike` (Phase 1) remains as a console debugging
+Phase 4 (channel switcher) is done: the panel's **Voice Channels** button
+lists the current server's voice channels — d-pad to pick, **A** to join.
+The last server is remembered, so disconnect → reconnect works entirely
+from the couch. `npm run spike` (Phase 1) remains as a console debugging
 tool; `F10` toggles the panel from a keyboard for testing.
 
 ## Requirements
