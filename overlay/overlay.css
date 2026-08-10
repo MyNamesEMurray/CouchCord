@@ -50,27 +50,6 @@ body.corner-bottom {
   box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.5);
 }
 
-.hud-header {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #b5bac1;
-  margin-bottom: 0.4rem;
-}
-
-.hud-channel {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hud-flags {
-  margin-left: auto;
-  color: #f23f43;
-}
-
 #hud-members {
   list-style: none;
 }

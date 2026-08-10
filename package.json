@@ -1,7 +1,7 @@
 {
   "name": "couchcord",
   "productName": "CouchCord",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Controller-summoned Discord voice overlay for couch gaming on Windows HTPCs",
   "main": "main.js",
   "scripts": {

@@ -3,8 +3,6 @@
 const api = window.couchcord;
 
 const hud = document.getElementById("hud");
-const hudChannel = document.getElementById("hud-channel");
-const hudFlags = document.getElementById("hud-flags");
 const hudMembers = document.getElementById("hud-members");
 
 const panel = document.getElementById("panel");
@@ -203,17 +201,17 @@ document.getElementById("remap-cancel").addEventListener("click", () => api.acti
 // ---- passive HUD ----
 
 function renderHud() {
-  const show = state.connected && state.channel && !state.hudHidden && !state.panelOpen;
+  // No header — the HUD is just the member rows (the panel names the
+  // channel). In speaking-only mode the card disappears entirely while
+  // nobody talks.
+  const members = state.hudMode === "speaking" ? state.members.filter((m) => m.speaking) : state.members;
+  const show = state.connected && state.channel && !state.hudHidden && !state.panelOpen && members.length > 0;
   hud.classList.toggle("hidden", !show);
   if (!show) return;
 
   hud.style.background = `rgba(17, 19, 27, ${state.hudOpacity ?? 0.85})`;
   hud.classList.toggle("hud-compact", state.hudMode === "compact");
 
-  hudChannel.textContent = state.channel.name;
-  hudFlags.textContent = state.self.deaf ? "🙉" : state.self.mute ? "🔇" : "";
-
-  const members = state.hudMode === "speaking" ? state.members.filter((m) => m.speaking) : state.members;
   hudMembers.replaceChildren(...members.map(memberRow));
 }
 

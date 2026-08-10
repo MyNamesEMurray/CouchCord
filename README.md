@@ -190,7 +190,7 @@ Big Picture:
 
 1. HUD sits in the corner, speaking rings light up as people talk.
 2. Hold Back + Start → panel opens, game stops seeing the pad.
-3. Mute → HUD shows 🔇; Unmute; Deafen → 🙉; Undeafen.
+3. Mute → your row in the HUD shows 🔇; Unmute; Deafen → 🙉; Undeafen.
 4. Voice Channels → pick a server, then a channel with the d-pad → A joins
    it (works across servers).
 5. Disconnect → HUD hides. Panel → Voice Channels → rejoin.
