@@ -107,6 +107,8 @@ class DiscordBridge extends EventEmitter {
 
   // Voice channels of the current guild (or the last one we were in, so
   // disconnect -> reconnect works). Returns null when no guild is known yet.
+  // ponytail: single-guild only. Upgrade path: GET_GUILDS -> guild picker view
+  // in the panel, then GET_CHANNELS per selection.
   async listVoiceChannels() {
     const guildId = (this.channel && this.channel.guildId) || this.lastGuildId;
     if (!guildId) return null;
@@ -178,9 +180,19 @@ class DiscordBridge extends EventEmitter {
     } catch (err) {
       if (this._client === client) this._client = null;
       await client.destroy().catch(() => {});
+      this._resetVoiceState(); // a half-finished attempt must not leave stale state behind
       if (!this.authDeclined) this._log(`Discord not reachable (${err && err.message ? err.message : err}); retrying in ${this._retryDelay / 1000}s`);
+      this._emitUpdate();
       this._scheduleRetry();
     }
+  }
+
+  _resetVoiceState() {
+    this.connected = false;
+    this.channel = null;
+    this.members.clear();
+    this.speaking.clear();
+    this._channelSubs = [];
   }
 
   async _subscribeAll() {
@@ -194,11 +206,7 @@ class DiscordBridge extends EventEmitter {
     if (this._client !== client) return; // stale client from a torn-down attempt
     this._client = null;
     clearInterval(this._tokenTimer);
-    this.connected = false;
-    this.channel = null;
-    this.members.clear();
-    this.speaking.clear();
-    this._channelSubs = [];
+    this._resetVoiceState();
     client.destroy().catch(() => {});
     this._log("Discord went away; waiting for it to come back");
     this._emitUpdate();

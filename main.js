@@ -45,8 +45,8 @@ function hudBounds() {
 
 function panelBounds() {
   const wa = screen.getPrimaryDisplay().workArea;
-  const w = Math.round(PANEL_W * config.hudScale);
-  const h = Math.round(PANEL_H * config.hudScale);
+  const w = Math.min(Math.round(PANEL_W * config.hudScale), wa.width - MARGIN * 2);
+  const h = Math.min(Math.round(PANEL_H * config.hudScale), wa.height - MARGIN * 2);
   return {
     x: wa.x + Math.round((wa.width - w) / 2),
     y: wa.y + Math.round((wa.height - h) / 2),
@@ -211,6 +211,16 @@ if (!app.requestSingleInstanceLock()) {
       } catch (err) {
         logFail(`registering debug hotkey ${config.debugHotkey}`)(err);
       }
+    }
+    // ponytail: registers the dev electron.exe + app dir as the login item,
+    // which is right for run-from-a-checkout. A packaged build should pass
+    // its own exe path instead.
+    if (process.platform === "win32") {
+      app.setLoginItemSettings({
+        openAtLogin: !!config.launchOnLogin,
+        path: process.execPath,
+        args: [path.resolve(__dirname)],
+      });
     }
   });
   app.on("window-all-closed", () => app.quit());

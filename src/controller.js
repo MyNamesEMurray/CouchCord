@@ -50,23 +50,22 @@ class ControllerInput extends EventEmitter {
   start() {
     try {
       this._sdl = require("@kmamal/sdl");
+      for (const device of this._sdl.controller.devices) this._open(device);
+      // Hot-plug: pads may connect/disconnect at any time.
+      this._sdl.controller.on("deviceAdd", ({ device }) => this._open(device));
+      this._sdl.controller.on("deviceRemove", ({ device }) => {
+        const pad = this._pads.get(device.id);
+        if (pad && !pad.inst.closed) {
+          try {
+            pad.inst.close();
+          } catch {}
+        }
+        this._cleanup(device.id);
+      });
     } catch (err) {
-      this._log(`SDL failed to load — controller input disabled (${err.message})`);
+      this._log(`SDL failed to start — controller input disabled (${err.message})`);
       return;
     }
-
-    for (const device of this._sdl.controller.devices) this._open(device);
-    // Hot-plug: pads may connect/disconnect at any time.
-    this._sdl.controller.on("deviceAdd", ({ device }) => this._open(device));
-    this._sdl.controller.on("deviceRemove", ({ device }) => {
-      const pad = this._pads.get(device.id);
-      if (pad && !pad.inst.closed) {
-        try {
-          pad.inst.close();
-        } catch {}
-      }
-      this._cleanup(device.id);
-    });
     if (this._pads.size === 0) this._log("No controller detected yet — plug one in any time");
   }
 
@@ -106,8 +105,9 @@ class ControllerInput extends EventEmitter {
 
   _buttonDown(pad, button) {
     pad.pressed.add(button);
-    // Most recently active pad wins: its layout drives the button hints, and
-    // navigation just listens to every pad — on a couch that's the same thing.
+    // Most recently active pad wins: its layout drives the button hints.
+    // ponytail: nav events are accepted from every pad; if two people mash
+    // at once, filter here on pad.id === lastActive pad's id.
     if (pad.family !== this.activeFamily) {
       this.activeFamily = pad.family;
     }
