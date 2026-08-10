@@ -9,12 +9,11 @@
     "spike": "node spike.js",
     "assets": "electron scripts/render-assets.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis --publish never"
   },
   "build": {
     "appId": "app.couchcord.overlay",
     "productName": "CouchCord",
-    "electronDist": "node_modules/electron/dist",
     "npmRebuild": false,
     "directories": {
       "output": "dist"
