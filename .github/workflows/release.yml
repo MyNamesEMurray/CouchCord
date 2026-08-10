@@ -5,7 +5,13 @@ on:
     types: [published] # hand-made releases still build + attach
   push:
     tags: ["v*"] # pushing a version tag creates the release itself
-  workflow_dispatch: # manual test runs — builds the installer as a workflow artifact
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Create the v<package.json version> release (tag + notes + installer)"
+        type: boolean
+        default: false
+    # without 'publish': a test run that only produces the installer artifact
 
 permissions:
   contents: write # create the release / attach the installer
@@ -26,12 +32,15 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
-            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+            tag="${{ github.event.release.tag_name }}"
           elif [ "${{ github.event_name }}" = "push" ]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            tag="${{ github.ref_name }}"
+          elif [ "${{ inputs.publish }}" = "true" ]; then
+            tag="v$(node -p "require('./package.json').version")"
           else
-            echo "tag=" >> "$GITHUB_OUTPUT"
+            tag=""
           fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       # The installer's version comes from package.json — catch a mismatched
       # tag before shipping an exe that claims a different version.
@@ -51,11 +60,12 @@ jobs:
 
       - run: npm run dist
 
-      # Tag-push path: create the release if it doesn't exist yet. Releases
-      # created with GITHUB_TOKEN don't re-trigger this workflow, so the
-      # 'release: published' trigger can't cause a second run.
+      # Tag-push and dispatch-publish paths: create the release if it doesn't
+      # exist yet ('--target' also creates the tag when needed). Tags and
+      # releases created with GITHUB_TOKEN don't re-trigger this workflow, so
+      # the other triggers can't cause a second run.
       - name: Create release if missing
-        if: github.event_name == 'push'
+        if: steps.tag.outputs.tag != '' && github.event_name != 'release'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -65,9 +75,9 @@ jobs:
           if gh release view "$tag" > /dev/null 2>&1; then
             echo "Release $tag already exists"
           elif [ -f "release-notes/$tag.md" ]; then
-            gh release create "$tag" --title "CouchCord $tag" --notes-file "release-notes/$tag.md"
+            gh release create "$tag" --target "${{ github.sha }}" --title "CouchCord $tag" --notes-file "release-notes/$tag.md"
           else
-            gh release create "$tag" --title "CouchCord $tag" --generate-notes
+            gh release create "$tag" --target "${{ github.sha }}" --title "CouchCord $tag" --generate-notes
           fi
 
       - name: Attach installer to the release
