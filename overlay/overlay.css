@@ -98,8 +98,8 @@ li.speaking .avatar {
 }
 
 li.speaking .name {
+  /* Color only — a weight change makes names reflow as people talk. */
   color: #fff;
-  font-weight: 600;
 }
 
 /* Avatars off: names only, tighter rows, speakers highlighted by color */
