@@ -259,7 +259,7 @@ body.panel-open {
 
 .list-rows {
   list-style: none;
-  max-height: 17rem;
+  max-height: 19.5rem;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;

@@ -53,7 +53,7 @@ const GLYPHS = {
 };
 
 let state = null;
-let view = "main"; // "main" | "servers" | "channels"
+let view = "main"; // "main" | "servers" | "channels" | "settings"
 let focusIdx = 0;
 let focusables = []; // [{ el, activate }] for the current view
 let guilds = undefined; // undefined = loading, null = fetch failed, [] = fetched
@@ -105,7 +105,7 @@ function handleNav(action) {
         ? Math.max(0, guilds.findIndex((g) => selectedGuild && g.id === selectedGuild.id))
         : 0;
       render();
-    } else if (view === "servers") {
+    } else if (view === "servers" || view === "settings") {
       view = "main";
       focusIdx = 0;
       render();
@@ -279,6 +279,7 @@ function renderPanel() {
   viewMain.classList.toggle("hidden", view !== "main");
   viewList.classList.toggle("hidden", view === "main");
   if (view === "main") renderMainView();
+  else if (view === "settings") renderSettingsView();
   else renderListView();
   renderHints();
 }
@@ -307,14 +308,13 @@ function mainButtons() {
       act: openServers,
     },
     {
-      icon: "🎮",
-      label: "Remap Chord",
-      act: () => api.action("startChordCapture"),
-    },
-    {
-      icon: "👁️",
-      label: state.hudHidden ? "Show HUD" : "Hide HUD",
-      act: () => api.action("toggleHud"),
+      icon: "⚙️",
+      label: "Settings",
+      act: () => {
+        view = "settings";
+        focusIdx = 0;
+        render();
+      },
     },
     {
       icon: "✖",
@@ -359,6 +359,68 @@ function openServers() {
     }
     render();
   });
+}
+
+// ---- settings view ----
+
+const cycle = (list, current) => list[(list.indexOf(current) + 1) % list.length];
+const CORNERS = ["top-left", "top-right", "bottom-left", "bottom-right"];
+const SCALES = [0.8, 1, 1.25, 1.5, 1.75, 2];
+const HOLD_TIMES = [250, 400, 600, 800];
+const cornerLabel = (c) => c.replace("-", " ").replace(/\b\w/g, (m) => m.toUpperCase());
+
+function renderSettingsView() {
+  listTitle.textContent = "Settings";
+  listHint.classList.add("hidden");
+
+  const rows = [
+    {
+      label: "Summon chord",
+      value: chordLabel(state.chord),
+      act: () => api.action("startChordCapture"),
+    },
+    {
+      label: "Chord hold time",
+      value: `${state.chordHoldMs} ms`,
+      act: () => api.action("setSetting", { key: "chordHoldMs", value: cycle(HOLD_TIMES, state.chordHoldMs) }),
+    },
+    {
+      label: "HUD corner",
+      value: cornerLabel(state.hudCorner),
+      act: () => api.action("setSetting", { key: "hudCorner", value: cycle(CORNERS, state.hudCorner) }),
+    },
+    {
+      label: "Overlay size",
+      value: `${Math.round((state.hudScale || 1) * 100)}%`,
+      act: () => api.action("setSetting", { key: "hudScale", value: cycle(SCALES, state.hudScale || 1) }),
+    },
+    {
+      label: "Show HUD in voice",
+      value: state.hudHidden ? "Off" : "On",
+      act: () => api.action("toggleHud"),
+    },
+    {
+      label: "Launch on login",
+      value: state.launchOnLogin ? "On" : "Off",
+      act: () => api.action("setSetting", { key: "launchOnLogin", value: !state.launchOnLogin }),
+    },
+  ];
+
+  focusIdx = Math.min(focusIdx, rows.length - 1);
+  focusables = rows.map((row) => {
+    const li = document.createElement("li");
+    const label = document.createElement("span");
+    label.className = "row-label";
+    label.textContent = row.label;
+    const value = document.createElement("span");
+    value.className = "current-tag";
+    value.textContent = row.value;
+    li.append(label, value);
+    li.addEventListener("click", row.act);
+    return { el: li, activate: row.act };
+  });
+  listRows.replaceChildren(...focusables.map((f) => f.el));
+  applyFocus();
 }
 
 function openChannels(guild) {
@@ -441,7 +503,12 @@ function renderListView() {
 
 function renderHints() {
   if (state.capturing) {
-    panelHints.replaceChildren(hint("Esc", "Cancel"), hint("⌛", "Hold combo 1s to set"));
+    const g = GLYPHS[state.controllerFamily] || GLYPHS.xbox;
+    panelHints.replaceChildren(
+      hint("⌛", "Hold combo 1s to set"),
+      hint(g.back, "Hold alone to cancel"),
+      hint("Esc", "Cancel")
+    );
     return;
   }
   const g = GLYPHS[state.controllerFamily] || GLYPHS.xbox;

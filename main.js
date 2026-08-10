@@ -218,17 +218,42 @@ function runOverlay() {
       hudScale: config.hudScale,
       controllerFamily: controllers.activeFamily,
       chord: config.chord,
+      chordHoldMs: config.chordHoldMs,
+      launchOnLogin: !!config.launchOnLogin,
       capturing: ui.capturing,
       captureHeld: ui.captureHeld,
     };
   }
 
-  function stopCapture() {
+  // Ends learn mode from any path: Esc, controller cancel, timeout, capture
+  // completion, or the panel closing.
+  function endCapture() {
     if (!ui.capturing) return;
     ui.capturing = false;
     ui.captureHeld = [];
     clearTimeout(captureTimeout);
+    try {
+      globalShortcut.unregister("Escape");
+    } catch {}
+  }
+
+  function stopCapture() {
+    if (!ui.capturing) return;
+    endCapture();
     controllers.cancelCapture();
+    log("Chord learn mode cancelled");
+  }
+
+  function applyLoginItem() {
+    if (process.platform !== "win32") return;
+    const login = { openAtLogin: !!config.launchOnLogin };
+    if (!app.isPackaged) {
+      // Dev checkout: the login item must be electron.exe + the app dir.
+      // Installed builds register their own exe (the default).
+      login.path = process.execPath;
+      login.args = [path.resolve(__dirname)];
+    }
+    app.setLoginItemSettings(login);
   }
 
   function updateVisibility() {
@@ -306,9 +331,7 @@ function runOverlay() {
     pushState();
   });
   controllers.on("chordCaptured", (chord) => {
-    ui.capturing = false;
-    ui.captureHeld = [];
-    clearTimeout(captureTimeout);
+    endCapture();
     config.chord = chord;
     try {
       updateConfig({ chord });
@@ -316,6 +339,11 @@ function runOverlay() {
     } catch (err) {
       logFail("saving remapped chord")(err);
     }
+    pushState();
+  });
+  controllers.on("captureCancelled", () => {
+    endCapture();
+    log("Chord learn mode cancelled from the controller");
     pushState();
   });
   let lastFamily = controllers.activeFamily;
@@ -357,12 +385,43 @@ function runOverlay() {
             pushState();
           }
         }, 20000); // learn mode gives up after 20s of nothing captured
+        // Global so Esc cancels even if window focus wandered (registered
+        // only while learn mode is active).
+        try {
+          globalShortcut.register("Escape", () => {
+            stopCapture();
+            pushState();
+          });
+        } catch {}
+        log("Chord learn mode started");
         pushState();
         break;
       case "cancelChordCapture":
         stopCapture();
         pushState();
         break;
+      case "setSetting": {
+        const { key, value } = payload || {};
+        const allowed = {
+          hudCorner: ["top-left", "top-right", "bottom-left", "bottom-right"],
+          hudScale: [0.8, 1, 1.25, 1.5, 1.75, 2],
+          chordHoldMs: [250, 400, 600, 800],
+          launchOnLogin: [true, false],
+        };
+        if (!allowed[key] || !allowed[key].includes(value)) break;
+        config[key] = value;
+        try {
+          updateConfig({ [key]: value });
+        } catch (err) {
+          logFail(`saving setting ${key}`)(err);
+        }
+        if (key === "chordHoldMs") controllers.chordHoldMs = value;
+        if (key === "launchOnLogin") applyLoginItem();
+        if (key === "hudScale" && ui.panelOpen && win && !win.isDestroyed()) win.setBounds(panelBounds());
+        log(`Setting ${key} = ${value}`);
+        pushState();
+        break;
+      }
       case "toggleHud":
         hudHidden = !hudHidden;
         pushState();
@@ -399,16 +458,7 @@ function runOverlay() {
         logFail(`registering debug hotkey ${config.debugHotkey}`)(err);
       }
     }
-    if (process.platform === "win32") {
-      const login = { openAtLogin: !!config.launchOnLogin };
-      if (!app.isPackaged) {
-        // Dev checkout: the login item must be electron.exe + the app dir.
-        // Installed builds register their own exe (the default).
-        login.path = process.execPath;
-        login.args = [path.resolve(__dirname)];
-      }
-      app.setLoginItemSettings(login);
-    }
+    applyLoginItem();
   });
   app.on("window-all-closed", () => app.quit());
   app.on("will-quit", () => {

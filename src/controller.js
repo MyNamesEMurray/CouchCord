@@ -85,6 +85,13 @@ class ControllerInput extends EventEmitter {
     if (!held.length) return;
     this._capture.timer = setTimeout(() => {
       this._capture = null;
+      // Holding ONLY the east button (B/○ — "back" everywhere else in the
+      // UI) cancels instead of capturing; a solo east-button chord would be
+      // unusable anyway.
+      if (held.length === 1 && held[0] === "b") {
+        this.emit("captureCancelled");
+        return;
+      }
       this.chord = held;
       pad.chordLatched = true; // don't fire the new chord from this same hold
       this.emit("chordCaptured", held);

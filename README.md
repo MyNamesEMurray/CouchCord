@@ -97,18 +97,22 @@ means the south button, so a Nintendo pad's physical B activates — and the
 on-screen hints switch to the matching labels (✕/○ on PlayStation, B/A on
 Nintendo) for whichever pad you used last.
 
-Panel actions: **Mute · Deafen · Disconnect · Voice Channels · Remap Chord ·
-Hide HUD · Quit CouchCord**. **Voice Channels** first lists every server
-you're a member of (with server icons; the one you're connected to is
-tagged and pre-focused), then that server's voice channels — so you can hop
-to any channel on any of your servers, or disconnect and rejoin, without
-touching a keyboard.
+Panel actions: **Mute · Deafen · Disconnect · Voice Channels · Settings ·
+Quit CouchCord**. **Voice Channels** first lists every server you're a
+member of (with server icons; the one you're connected to is tagged and
+pre-focused), then that server's voice channels — so you can hop to any
+channel on any of your servers, or disconnect and rejoin, without touching
+a keyboard.
 
-**Remap Chord** is a learn mode: hold the button combo you want on the
-controller, keep it held for one second, and it becomes the new summon
-chord — saved to `config.json` and active immediately. The panel's footer
-always shows the current chord. (Esc cancels; learn mode times out after
-20 seconds.)
+**Settings** edits the config from the couch — every row cycles with **A**
+and persists to `config.json` immediately:
+
+- **Summon chord** — a learn mode: hold the button combo you want, keep it
+  held for one second, and it becomes the chord (active immediately, no
+  restart; the panel footer always shows the current chord). Holding
+  **B/○ alone** cancels, as does Esc; learn mode times out after 20 s.
+- **Chord hold time** (250–800 ms), **HUD corner**, **overlay size**
+  (80–200 %), **show HUD in voice**, and **launch on login**.
 
 While the panel is open it takes keyboard/controller focus, so Steam Input
 stops routing your pad to the game; closing it hands focus straight back.
