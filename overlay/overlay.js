@@ -15,7 +15,34 @@ const viewList = document.getElementById("view-list");
 const listTitle = document.getElementById("list-title");
 const listRows = document.getElementById("list-rows");
 const listHint = document.getElementById("list-hint");
+const viewRemap = document.getElementById("view-remap");
+const remapHeld = document.getElementById("remap-held");
 const panelHints = document.getElementById("panel-hints");
+
+// Friendly names for SDL's positional button identifiers.
+const BUTTON_NAMES = {
+  a: "A (south)",
+  b: "B (east)",
+  x: "X (west)",
+  y: "Y (north)",
+  back: "Back/View",
+  start: "Start/Menu",
+  guide: "Guide/Home",
+  leftShoulder: "LB",
+  rightShoulder: "RB",
+  leftStick: "L3",
+  rightStick: "R3",
+  dpadUp: "D-Up",
+  dpadDown: "D-Down",
+  dpadLeft: "D-Left",
+  dpadRight: "D-Right",
+  paddle1: "Paddle 1",
+  paddle2: "Paddle 2",
+  paddle3: "Paddle 3",
+  paddle4: "Paddle 4",
+};
+const buttonLabel = (b) => BUTTON_NAMES[b] || b;
+const chordLabel = (chord) => (chord && chord.length ? chord.map(buttonLabel).join(" + ") : "?");
 
 // Button-hint glyphs per controller family. Positional: "accept" is always
 // the south button — which a Nintendo pad labels B.
@@ -48,6 +75,10 @@ api.onNav(handleNav);
 // Keyboard fallback (panel has real focus while open): arrows/Enter/Escape.
 document.addEventListener("keydown", (e) => {
   if (state && state.setupMode) return; // the wizard needs real text editing
+  if (state && state.capturing) {
+    if (e.key === "Escape") api.action("cancelChordCapture");
+    return; // controller input is being captured — keys stay out of it
+  }
   const map = {
     ArrowUp: "up",
     ArrowDown: "down",
@@ -126,6 +157,8 @@ function render() {
   renderHud();
   renderPanel();
 }
+
+document.getElementById("remap-cancel").addEventListener("click", () => api.action("cancelChordCapture"));
 
 // ---- first-run setup wizard ----
 
@@ -234,6 +267,15 @@ function renderPanel() {
     })
   );
 
+  if (state.capturing) {
+    viewMain.classList.add("hidden");
+    viewList.classList.add("hidden");
+    viewRemap.classList.remove("hidden");
+    remapHeld.textContent = state.captureHeld && state.captureHeld.length ? chordLabel(state.captureHeld) : "…";
+    renderHints();
+    return;
+  }
+  viewRemap.classList.add("hidden");
   viewMain.classList.toggle("hidden", view !== "main");
   viewList.classList.toggle("hidden", view === "main");
   if (view === "main") renderMainView();
@@ -263,6 +305,11 @@ function mainButtons() {
       icon: "🔀",
       label: "Voice Channels",
       act: openServers,
+    },
+    {
+      icon: "🎮",
+      label: "Remap Chord",
+      act: () => api.action("startChordCapture"),
     },
     {
       icon: "👁️",
@@ -347,9 +394,26 @@ function renderListView() {
   focusIdx = Math.min(focusIdx, Math.max(0, rows.length - 1));
   focusables = rows.map((item) => {
     const li = document.createElement("li");
+    if (isServers) {
+      const icon = document.createElement("span");
+      icon.className = "row-icon";
+      const initial = (item.name[0] || "?").toUpperCase();
+      if (item.iconUrl) {
+        const img = document.createElement("img");
+        img.src = item.iconUrl;
+        img.addEventListener("error", () => {
+          img.remove();
+          icon.textContent = initial;
+        });
+        icon.appendChild(img);
+      } else {
+        icon.textContent = initial;
+      }
+      li.appendChild(icon);
+    }
     const label = document.createElement("span");
     label.className = "row-label";
-    label.textContent = isServers ? `🌐 ${item.name}` : `🔊 ${item.name}`;
+    label.textContent = isServers ? item.name : `🔊 ${item.name}`;
     li.appendChild(label);
     const isCurrent = isServers
       ? state.channel && state.channel.guildId === item.id
@@ -376,12 +440,16 @@ function renderListView() {
 }
 
 function renderHints() {
+  if (state.capturing) {
+    panelHints.replaceChildren(hint("Esc", "Cancel"), hint("⌛", "Hold combo 1s to set"));
+    return;
+  }
   const g = GLYPHS[state.controllerFamily] || GLYPHS.xbox;
   panelHints.replaceChildren(
     hint("D-pad", "Move"),
     hint(g.accept, "Select"),
     hint(g.back, view === "main" ? "Close" : "Back"),
-    hint("⌂", "Hold chord to close")
+    hint("⌂", `Hold ${chordLabel(state.chord)} to close`)
   );
 }
 

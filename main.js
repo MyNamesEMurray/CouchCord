@@ -7,7 +7,7 @@ process.env.SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS = process.env.SDL_JOYSTICK_ALLO
 
 const path = require("node:path");
 const { app, BrowserWindow, dialog, ipcMain, screen, shell, globalShortcut } = require("electron");
-const { loadConfig, saveCredentials, tokenStore, CONFIG_PATH, DATA_DIR } = require("./src/config");
+const { loadConfig, saveCredentials, updateConfig, tokenStore, CONFIG_PATH, DATA_DIR } = require("./src/config");
 const { createLogger } = require("./src/log");
 const { DiscordBridge } = require("./src/discord");
 const { ControllerInput } = require("./src/controller");
@@ -125,7 +125,8 @@ function runOverlay() {
 
   let win = null;
   let hudHidden = false;
-  const ui = { panelOpen: false };
+  const ui = { panelOpen: false, capturing: false, captureHeld: [] };
+  let captureTimeout = null;
 
   function hudBounds() {
     const wa = screen.getPrimaryDisplay().workArea;
@@ -216,7 +217,18 @@ function runOverlay() {
       hudCorner: config.hudCorner,
       hudScale: config.hudScale,
       controllerFamily: controllers.activeFamily,
+      chord: config.chord,
+      capturing: ui.capturing,
+      captureHeld: ui.captureHeld,
     };
+  }
+
+  function stopCapture() {
+    if (!ui.capturing) return;
+    ui.capturing = false;
+    ui.captureHeld = [];
+    clearTimeout(captureTimeout);
+    controllers.cancelCapture();
   }
 
   function updateVisibility() {
@@ -282,9 +294,29 @@ function runOverlay() {
   });
 
   controllers.on("log", log);
-  controllers.on("chord", togglePanel);
+  controllers.on("chord", () => {
+    if (!ui.capturing) togglePanel();
+  });
   controllers.on("nav", (action) => {
+    if (ui.capturing) return;
     if (ui.panelOpen && win && !win.isDestroyed()) win.webContents.send("nav", action);
+  });
+  controllers.on("captureUpdate", (held) => {
+    ui.captureHeld = held;
+    pushState();
+  });
+  controllers.on("chordCaptured", (chord) => {
+    ui.capturing = false;
+    ui.captureHeld = [];
+    clearTimeout(captureTimeout);
+    config.chord = chord;
+    try {
+      updateConfig({ chord });
+      log(`Summon chord remapped to: ${chord.join(" + ")}`);
+    } catch (err) {
+      logFail("saving remapped chord")(err);
+    }
+    pushState();
   });
   let lastFamily = controllers.activeFamily;
   controllers.on("activity", (family) => {
@@ -311,7 +343,25 @@ function runOverlay() {
         bridge.joinVoiceChannel(payload).catch(logFail("join"));
         break;
       case "closePanel":
+        stopCapture();
         closePanel();
+        break;
+      case "startChordCapture":
+        ui.capturing = true;
+        ui.captureHeld = [];
+        controllers.startCapture();
+        clearTimeout(captureTimeout);
+        captureTimeout = setTimeout(() => {
+          if (ui.capturing) {
+            stopCapture();
+            pushState();
+          }
+        }, 20000); // learn mode gives up after 20s of nothing captured
+        pushState();
+        break;
+      case "cancelChordCapture":
+        stopCapture();
+        pushState();
         break;
       case "toggleHud":
         hudHidden = !hudHidden;

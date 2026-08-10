@@ -65,16 +65,22 @@ function needsSetup() {
   return err;
 }
 
-// Writes credentials into config.json, preserving any other settings the
-// user already changed. Used by the first-run setup wizard.
-function saveCredentials({ clientId, clientSecret }) {
+// Merges a partial update into config.json, preserving everything else the
+// user already changed. Used by the setup wizard and in-app settings like
+// the chord remap.
+function updateConfig(partial) {
   let existing = {};
   try {
     existing = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
   } catch {}
-  const merged = { ...DEFAULTS, ...existing, clientId, clientSecret };
+  const merged = { ...DEFAULTS, ...existing, ...partial };
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(merged, null, 2)}\n`);
+  return merged;
+}
+
+function saveCredentials({ clientId, clientSecret }) {
+  updateConfig({ clientId, clientSecret });
 }
 
 // Caches the Discord OAuth refresh token between runs so the authorization
@@ -102,4 +108,4 @@ const tokenStore = {
   },
 };
 
-module.exports = { loadConfig, saveCredentials, tokenStore, CONFIG_PATH, DATA_DIR };
+module.exports = { loadConfig, saveCredentials, updateConfig, tokenStore, CONFIG_PATH, DATA_DIR };

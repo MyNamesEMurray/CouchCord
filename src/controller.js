@@ -16,6 +16,8 @@ const NAV_BUTTONS = {
 const REPEATABLE = new Set(["up", "down", "left", "right"]);
 const REPEAT_DELAY_MS = 400;
 const REPEAT_INTERVAL_MS = 130;
+// "Learn" mode: the combo the user holds steady this long becomes the chord.
+const CAPTURE_HOLD_MS = 1000;
 
 // Glyph family for button hints, from SDL's controller type detection.
 function familyOf(device) {
@@ -45,6 +47,48 @@ class ControllerInput extends EventEmitter {
     this.activeFamily = "xbox";
     this._sdl = null;
     this._pads = new Map(); // SDL device id -> pad record
+    this._capture = null; // { timer } while learn mode is active
+  }
+
+  // ---- chord learn mode -----------------------------------------------------
+  // While capturing, all buttons feed the capture instead of chord/nav. When
+  // a non-empty combo is held steady for CAPTURE_HOLD_MS it becomes the new
+  // chord ("chordCaptured" event); "captureUpdate" streams the held buttons
+  // for the UI.
+
+  startCapture() {
+    this.cancelCapture();
+    this._capture = { timer: null };
+    for (const pad of this._pads.values()) {
+      clearTimeout(pad.chordTimer);
+      pad.chordTimer = null;
+      pad.chordLatched = false;
+      this._stopRepeat(pad);
+    }
+    this.emit("captureUpdate", []);
+  }
+
+  cancelCapture() {
+    if (!this._capture) return;
+    clearTimeout(this._capture.timer);
+    this._capture = null;
+  }
+
+  setChord(chord) {
+    this.chord = chord;
+  }
+
+  _captureTick(pad) {
+    const held = [...pad.pressed].sort();
+    clearTimeout(this._capture.timer);
+    this.emit("captureUpdate", held);
+    if (!held.length) return;
+    this._capture.timer = setTimeout(() => {
+      this._capture = null;
+      this.chord = held;
+      pad.chordLatched = true; // don't fire the new chord from this same hold
+      this.emit("chordCaptured", held);
+    }, CAPTURE_HOLD_MS);
   }
 
   start() {
@@ -113,6 +157,11 @@ class ControllerInput extends EventEmitter {
     }
     this.emit("activity", pad.family);
 
+    if (this._capture) {
+      this._captureTick(pad);
+      return;
+    }
+
     if (this.chord.includes(button)) {
       const held = this.chord.every((b) => pad.pressed.has(b));
       if (held && !pad.chordTimer && !pad.chordLatched) {
@@ -141,6 +190,10 @@ class ControllerInput extends EventEmitter {
 
   _buttonUp(pad, button) {
     pad.pressed.delete(button);
+    if (this._capture) {
+      this._captureTick(pad);
+      return;
+    }
     if (this.chord.includes(button)) {
       clearTimeout(pad.chordTimer);
       pad.chordTimer = null;

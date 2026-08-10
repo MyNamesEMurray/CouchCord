@@ -97,11 +97,18 @@ means the south button, so a Nintendo pad's physical B activates — and the
 on-screen hints switch to the matching labels (✕/○ on PlayStation, B/A on
 Nintendo) for whichever pad you used last.
 
-Panel actions: **Mute · Deafen · Disconnect · Voice Channels · Hide HUD ·
-Quit CouchCord**. **Voice Channels** first lists every server you're a
-member of (the one you're connected to is tagged and pre-focused), then that
-server's voice channels — so you can hop to any channel on any of your
-servers, or disconnect and rejoin, without touching a keyboard.
+Panel actions: **Mute · Deafen · Disconnect · Voice Channels · Remap Chord ·
+Hide HUD · Quit CouchCord**. **Voice Channels** first lists every server
+you're a member of (with server icons; the one you're connected to is
+tagged and pre-focused), then that server's voice channels — so you can hop
+to any channel on any of your servers, or disconnect and rejoin, without
+touching a keyboard.
+
+**Remap Chord** is a learn mode: hold the button combo you want on the
+controller, keep it held for one second, and it becomes the new summon
+chord — saved to `config.json` and active immediately. The panel's footer
+always shows the current chord. (Esc cancels; learn mode times out after
+20 seconds.)
 
 While the panel is open it takes keyboard/controller focus, so Steam Input
 stops routing your pad to the game; closing it hands focus straight back.
@@ -113,7 +120,7 @@ Created from `config.example.json` on first run.
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `clientId` / `clientSecret` | `""` | Your Discord application credentials (see above) |
-| `chord` | `["back", "start"]` | Buttons that summon the panel. SDL names: `a b x y back start guide leftShoulder rightShoulder leftStick rightStick dpadUp dpadDown dpadLeft dpadRight` |
+| `chord` | `["back", "start"]` | Buttons that summon the panel — easiest set via the panel's **Remap Chord** learn mode. SDL names: `a b x y back start guide leftShoulder rightShoulder leftStick rightStick dpadUp dpadDown dpadLeft dpadRight` |
 | `chordHoldMs` | `400` | How long the chord must be held |
 | `hudCorner` | `"top-right"` | `top-left`, `top-right`, `bottom-left`, `bottom-right` |
 | `hudScale` | `1.0` | Scales the whole UI (try `1.5` for a far couch) |

@@ -140,10 +140,16 @@ class DiscordBridge extends EventEmitter {
     await this._req("SELECT_VOICE_CHANNEL", { channel_id: channelId, force: true });
   }
 
-  // Every guild the logged-in user is a member of.
+  // Every guild the logged-in user is a member of. Icon URLs are passed
+  // through only when they point at Discord's CDN (the renderer's CSP only
+  // allows images from there anyway).
   async listGuilds() {
     const data = await this._req("GET_GUILDS");
-    return (data.guilds || []).map((g) => ({ id: g.id, name: g.name }));
+    return (data.guilds || []).map((g) => ({
+      id: g.id,
+      name: g.name,
+      iconUrl: typeof g.icon_url === "string" && g.icon_url.startsWith("https://cdn.discordapp.com/") ? g.icon_url : null,
+    }));
   }
 
   // Voice channels of the given guild — or, with no argument, the current one
