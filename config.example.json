@@ -6,7 +6,8 @@
   "hudCorner": "top-right",
   "hudScale": 1.0,
   "hudOpacity": 0.85,
-  "hudMode": "full",
+  "hudAvatars": true,
+  "hudOnlySpeakers": false,
   "debugHotkey": "F10",
   "launchOnLogin": false
 }

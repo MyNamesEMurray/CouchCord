@@ -102,18 +102,18 @@ li.speaking .name {
   font-weight: 600;
 }
 
-/* Compact HUD: names only, tighter rows */
-#hud.hud-compact .avatar {
+/* Avatars off: names only, tighter rows, speakers highlighted by color */
+#hud.hud-noavatars .avatar {
   display: none;
 }
 
-#hud.hud-compact #hud-members li {
+#hud.hud-noavatars #hud-members li {
   font-size: 0.95rem;
   padding: 0.12rem 0.3rem;
   gap: 0.4rem;
 }
 
-#hud.hud-compact li.speaking .name {
+#hud.hud-noavatars li.speaking .name {
   color: #2fd98c;
 }
 

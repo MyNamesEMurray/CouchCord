@@ -28,7 +28,8 @@ const DEFAULTS = {
   hudCorner: "top-right",
   hudScale: 1.0,
   hudOpacity: 0.85,
-  hudMode: "full", // full | compact | speaking
+  hudAvatars: true,
+  hudOnlySpeakers: false,
   debugHotkey: "F10",
   launchOnLogin: false,
 };
@@ -52,6 +53,12 @@ function loadConfig() {
   }
 
   const config = { ...DEFAULTS, ...parsed };
+  // v0.5.0 had a hudMode preset instead of independent toggles — map it once.
+  if (parsed.hudMode && parsed.hudAvatars === undefined && parsed.hudOnlySpeakers === undefined) {
+    config.hudAvatars = parsed.hudMode !== "compact";
+    config.hudOnlySpeakers = parsed.hudMode === "speaking";
+  }
+  delete config.hudMode;
   if (!config.clientId || !config.clientSecret) throw needsSetup();
   return config;
 }

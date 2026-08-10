@@ -112,9 +112,10 @@ and persists to `config.json` immediately:
   restart; the panel footer always shows the current chord). Holding
   **B/○ alone** cancels, as does Esc; learn mode times out after 20 s.
 - **Chord hold time** (250–800 ms), **HUD corner**, **overlay size**
-  (80–200 %), **show HUD in voice**, **HUD style** (everyone · compact ·
-  speaking only), **HUD opacity** (50–95 %, HUD only — the interactive
-  panel stays opaque for readability), and **launch on login**.
+  (80–200 %), **show HUD in voice**, **HUD avatars** (on/off), **HUD
+  shows** (everyone / only speakers), **HUD opacity** (50–95 %, HUD only —
+  the interactive panel stays opaque for readability), and **launch on
+  login**.
 
 While the panel is open it takes keyboard/controller focus, so Steam Input
 stops routing your pad to the game; closing it hands focus straight back.
@@ -131,7 +132,8 @@ Created from `config.example.json` on first run.
 | `hudCorner` | `"top-right"` | `top-left`, `top-right`, `bottom-left`, `bottom-right` |
 | `hudScale` | `1.0` | Scales the whole UI (try `1.5` for a far couch) |
 | `hudOpacity` | `0.85` | HUD card background opacity (the panel is unaffected) |
-| `hudMode` | `"full"` | `full` (everyone), `compact` (names only), `speaking` (only who's talking) |
+| `hudAvatars` | `true` | Show avatars in the HUD (`false` = names only, tighter rows) |
+| `hudOnlySpeakers` | `false` | `true` shows only who's currently talking (HUD hides when quiet) |
 | `debugHotkey` | `"F10"` | Global keyboard shortcut to toggle the panel; `""` disables |
 | `launchOnLogin` | `false` | Start CouchCord when Windows logs in |
 

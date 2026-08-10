@@ -202,15 +202,15 @@ document.getElementById("remap-cancel").addEventListener("click", () => api.acti
 
 function renderHud() {
   // No header — the HUD is just the member rows (the panel names the
-  // channel). In speaking-only mode the card disappears entirely while
+  // channel). With only-speakers on, the card disappears entirely while
   // nobody talks.
-  const members = state.hudMode === "speaking" ? state.members.filter((m) => m.speaking) : state.members;
+  const members = state.hudOnlySpeakers ? state.members.filter((m) => m.speaking) : state.members;
   const show = state.connected && state.channel && !state.hudHidden && !state.panelOpen && members.length > 0;
   hud.classList.toggle("hidden", !show);
   if (!show) return;
 
   hud.style.background = `rgba(17, 19, 27, ${state.hudOpacity ?? 0.85})`;
-  hud.classList.toggle("hud-compact", state.hudMode === "compact");
+  hud.classList.toggle("hud-noavatars", !state.hudAvatars);
 
   hudMembers.replaceChildren(...members.map(memberRow));
 }
@@ -402,9 +402,14 @@ function renderSettingsView() {
       act: () => api.action("toggleHud"),
     },
     {
-      label: "HUD style",
-      value: { full: "Everyone", compact: "Compact", speaking: "Speaking only" }[state.hudMode] || "Everyone",
-      act: () => api.action("setSetting", { key: "hudMode", value: cycle(["full", "compact", "speaking"], state.hudMode || "full") }),
+      label: "HUD avatars",
+      value: state.hudAvatars ? "On" : "Off",
+      act: () => api.action("setSetting", { key: "hudAvatars", value: !state.hudAvatars }),
+    },
+    {
+      label: "HUD shows",
+      value: state.hudOnlySpeakers ? "Only speakers" : "Everyone",
+      act: () => api.action("setSetting", { key: "hudOnlySpeakers", value: !state.hudOnlySpeakers }),
     },
     {
       label: "HUD opacity",
