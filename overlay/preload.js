@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld("couchcord", {
   action: (type, payload) => ipcRenderer.send("action", { type, payload }),
   listGuilds: () => ipcRenderer.invoke("listGuilds"),
   listChannels: (guildId) => ipcRenderer.invoke("listChannels", guildId),
+  saveCredentials: (creds) => ipcRenderer.invoke("saveCredentials", creds),
+  openPortal: () => ipcRenderer.send("openPortal"),
 });

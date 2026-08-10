@@ -33,17 +33,24 @@ user token and never calls the Discord HTTP API on your behalf.
 ## Discord setup (one time, ~2 minutes)
 
 CouchCord needs a Discord *application* identity to open an RPC connection.
-You create your own — it's personal, free, and stays on your machine:
+You create your own — it's personal, free, and stays on your machine.
+
+**The app walks you through it**: on first launch (no credentials yet)
+CouchCord opens a setup screen with a button to the Discord Developer
+Portal and paste boxes for the two values — no file editing needed. The
+steps it guides you through:
 
 1. Go to <https://discord.com/developers/applications> and click
    **New Application**. Name it anything (e.g. `CouchCord`).
-2. On the **OAuth2** page, copy the **Client ID** and the **Client Secret**.
-3. Run `npm install`, then `npm start` once — it creates `config.json` and
-   exits.
-4. Paste both values into `config.json` (`clientId`, `clientSecret`).
-5. Run `npm start` again. Discord pops an authorization dialog — click
+2. On the **OAuth2** page, copy the **Client ID** and the **Client Secret**
+   (click **Reset Secret** if it's hidden).
+3. Paste both into the setup screen and hit **Save & Start**.
+4. CouchCord restarts; Discord pops an authorization dialog — click
    **Authorize**. The grant is cached in `token.json`, so this only happens
    once.
+
+Prefer doing it by hand (or setting up the `npm run spike` harness)? Edit
+`config.json` directly — same two fields (`clientId`, `clientSecret`).
 
 > **Why this works without Discord's approval:** RPC apps normally need to
 > be whitelisted by Discord, but an unapproved app is always allowed to RPC
@@ -63,8 +70,8 @@ npm run spike    # console-only RPC test harness (Phase 1), handy for debugging
 Where `config.json` and the cached `token.json` live depends on how you run:
 
 - **From a checkout** (`npm start` / `npm run spike`): the repo root.
-- **Installed build**: `%APPDATA%\CouchCord` on Windows. On first launch the
-  app creates `config.json` there and shows a dialog with the exact path.
+- **Installed build**: `%APPDATA%\CouchCord` on Windows. The first-run
+  setup screen shows the exact path it saves to.
 
 Join a voice channel in Discord and the HUD appears in the configured
 corner. It hides automatically when you leave voice.

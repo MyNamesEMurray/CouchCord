@@ -47,6 +47,7 @@ api.onNav(handleNav);
 
 // Keyboard fallback (panel has real focus while open): arrows/Enter/Escape.
 document.addEventListener("keydown", (e) => {
+  if (state && state.setupMode) return; // the wizard needs real text editing
   const map = {
     ArrowUp: "up",
     ArrowDown: "down",
@@ -111,11 +112,59 @@ function applyFocus() {
 
 function render() {
   if (!state) return;
+  if (state.setupMode) {
+    document.body.className = "setup-mode";
+    document.getElementById("setup").classList.remove("hidden");
+    hud.classList.add("hidden");
+    panel.classList.add("hidden");
+    document.getElementById("setup-path").textContent = state.configPath || "config.json";
+    return;
+  }
   document.documentElement.style.fontSize = `${16 * (state.hudScale || 1)}px`;
   document.body.className = state.hudCorner.includes("bottom") ? "corner-bottom" : "corner-top";
   if (state.panelOpen) document.body.classList.add("panel-open");
   renderHud();
   renderPanel();
+}
+
+// ---- first-run setup wizard ----
+
+{
+  const idInput = document.getElementById("setup-id");
+  const secretInput = document.getElementById("setup-secret");
+  const saveBtn = document.getElementById("setup-save");
+  const errorEl = document.getElementById("setup-error");
+
+  const showError = (msg) => {
+    errorEl.textContent = msg;
+    errorEl.classList.toggle("hidden", !msg);
+  };
+
+  const save = () => {
+    showError("");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    api
+      .saveCredentials({ clientId: idInput.value, clientSecret: secretInput.value })
+      .then((res) => {
+        if (res && res.error) {
+          showError(res.error);
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save & Start";
+        } else {
+          saveBtn.textContent = "Restarting…";
+        }
+      });
+  };
+
+  document.getElementById("open-portal").addEventListener("click", () => api.openPortal());
+  document.getElementById("setup-quit").addEventListener("click", () => api.action("quit"));
+  saveBtn.addEventListener("click", save);
+  for (const input of [idInput, secretInput]) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") save();
+    });
+  }
 }
 
 // ---- passive HUD ----

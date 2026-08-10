@@ -48,6 +48,61 @@
       <footer id="panel-hints" class="panel-hints"></footer>
     </section>
 
+    <section id="setup" class="hidden">
+      <header class="setup-header">
+        <svg class="brand-mark" viewBox="58 88 420 340" aria-hidden="true">
+          <g fill="#ff6b4a">
+            <rect x="116" y="212" width="240" height="140" rx="42" />
+            <rect x="76" y="268" width="66" height="126" rx="33" />
+            <rect x="330" y="268" width="66" height="126" rx="33" />
+            <rect x="100" y="322" width="272" height="72" rx="34" />
+            <rect x="128" y="394" width="44" height="26" rx="12" />
+            <rect x="300" y="394" width="44" height="26" rx="12" />
+          </g>
+          <g stroke="#2fd98c" stroke-width="30" stroke-linecap="round" fill="none">
+            <path d="M 356 152 A 60 60 0 0 1 416 212" />
+            <path d="M 356 106 A 106 106 0 0 1 462 212" />
+          </g>
+        </svg>
+        <span class="panel-title">Couch<span class="brand-b">Cord</span></span>
+        <span class="setup-tag">first-run setup</span>
+      </header>
+
+      <p class="setup-intro">
+        CouchCord talks to your running Discord app through a personal Discord
+        application — free, takes about two minutes, and only works for your
+        own account.
+      </p>
+
+      <ol class="setup-steps">
+        <li><button id="open-portal" class="setup-btn">Open the Discord Developer Portal</button> and sign in.</li>
+        <li>Click <b>New Application</b> and name it anything (e.g. "CouchCord").</li>
+        <li>On the <b>OAuth2</b> page, copy the <b>Client ID</b> and <b>Client Secret</b> (click <b>Reset Secret</b> if it's hidden) and paste them below.</li>
+      </ol>
+
+      <label class="setup-label">
+        Client ID
+        <input id="setup-id" inputmode="numeric" placeholder="e.g. 1234567890123456789" spellcheck="false" autocomplete="off" />
+      </label>
+      <label class="setup-label">
+        Client Secret
+        <input id="setup-secret" type="password" placeholder="paste your Client Secret" spellcheck="false" autocomplete="off" />
+      </label>
+
+      <p id="setup-error" class="setup-error hidden"></p>
+
+      <div class="setup-actions">
+        <button id="setup-save" class="setup-btn primary">Save &amp; Start</button>
+        <button id="setup-quit" class="setup-btn">Quit</button>
+      </div>
+
+      <p class="setup-foot">
+        Stored locally in <span id="setup-path"></span> — the secret is only
+        ever sent to Discord itself. On the next start, Discord will show an
+        authorization popup: click <b>Authorize</b>.
+      </p>
+    </section>
+
     <script src="overlay.js"></script>
   </body>
 </html>

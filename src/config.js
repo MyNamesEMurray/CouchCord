@@ -32,17 +32,14 @@ const DEFAULTS = {
 };
 
 // Loads config.json, creating it from the example on first run. Throws an
-// Error with user-facing instructions when credentials are missing — the
-// caller decides how to show it (console for the spike, dialog for the app).
+// Error when the app can't start with it: err.code "NEEDS_SETUP" means
+// credentials are missing (the app shows the setup wizard; the spike prints
+// instructions), anything else is a real error to surface as-is.
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.copyFileSync(EXAMPLE_PATH, CONFIG_PATH);
-    throw new Error(
-      `Created ${CONFIG_PATH}\n\n` +
-        'Fill in clientId and clientSecret from your Discord application\n' +
-        '(see README "Discord setup") and start CouchCord again.'
-    );
+    throw needsSetup();
   }
 
   let parsed;
@@ -53,15 +50,31 @@ function loadConfig() {
   }
 
   const config = { ...DEFAULTS, ...parsed };
-  if (!config.clientId || !config.clientSecret) {
-    throw new Error(
-      `${CONFIG_PATH}\n\n` +
-        "is missing clientId and/or clientSecret. Create a Discord application\n" +
-        "at https://discord.com/developers/applications and copy both values in\n" +
-        '(see README "Discord setup").'
-    );
-  }
+  if (!config.clientId || !config.clientSecret) throw needsSetup();
   return config;
+}
+
+function needsSetup() {
+  const err = new Error(
+    `${CONFIG_PATH}\n\n` +
+      "needs your Discord application's clientId and clientSecret. Create one\n" +
+      "at https://discord.com/developers/applications and copy both values in\n" +
+      '(see README "Discord setup").'
+  );
+  err.code = "NEEDS_SETUP";
+  return err;
+}
+
+// Writes credentials into config.json, preserving any other settings the
+// user already changed. Used by the first-run setup wizard.
+function saveCredentials({ clientId, clientSecret }) {
+  let existing = {};
+  try {
+    existing = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+  } catch {}
+  const merged = { ...DEFAULTS, ...existing, clientId, clientSecret };
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(merged, null, 2)}\n`);
 }
 
 // Caches the Discord OAuth refresh token between runs so the authorization
@@ -89,4 +102,4 @@ const tokenStore = {
   },
 };
 
-module.exports = { loadConfig, tokenStore, CONFIG_PATH };
+module.exports = { loadConfig, saveCredentials, tokenStore, CONFIG_PATH };

@@ -318,6 +318,142 @@ body.panel-open {
   color: #b5bac1;
 }
 
+/* ---- first-run setup wizard ---- */
+
+body.setup-mode {
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+#setup {
+  width: 100%;
+  background: rgba(17, 19, 27, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.1rem;
+  padding: 1.2rem 1.4rem 1.1rem;
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.setup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  -webkit-app-region: drag; /* frameless window: the header is the handle */
+}
+
+.setup-header .brand-mark {
+  width: 2.1rem;
+  height: auto;
+  flex: none;
+}
+
+.setup-tag {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b5bac1;
+}
+
+.setup-intro,
+.setup-steps {
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #dbdee1;
+}
+
+.setup-steps {
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.setup-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b5bac1;
+}
+
+#setup input {
+  user-select: text;
+  font-family: inherit;
+  font-size: 1.05rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 0.14rem solid transparent;
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.75rem;
+}
+
+#setup input:focus {
+  outline: none;
+  border-color: #ff6b4a;
+}
+
+.setup-btn {
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #dbdee1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 0.14rem solid transparent;
+  border-radius: 0.6rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.setup-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.setup-btn.primary {
+  background: #ff6b4a;
+  color: #fff;
+}
+
+.setup-btn.primary:hover {
+  background: #ff835f;
+}
+
+.setup-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.setup-actions {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.2rem;
+}
+
+.setup-error {
+  font-size: 0.98rem;
+  color: #f23f43;
+}
+
+.setup-foot {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #8f96ab;
+}
+
+.setup-foot span {
+  color: #b5bac1;
+  word-break: break-all;
+}
+
 .hint {
   display: flex;
   align-items: center;
