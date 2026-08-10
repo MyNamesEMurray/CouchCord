@@ -8,7 +8,6 @@
     <rect x="128" y="394" width="44"  height="26"  rx="12"/>
     <rect x="300" y="394" width="44"  height="26"  rx="12"/>
   </g>
-  <rect x="228" y="330" width="16" height="56" rx="8" fill="#C74B31" opacity="0.85"/>
   <g stroke="#2FD98C" stroke-width="30" stroke-linecap="round" fill="none">
     <path d="M 356 152 A 60 60 0 0 1 416 212"/>
     <path d="M 356 106 A 106 106 0 0 1 462 212"/>

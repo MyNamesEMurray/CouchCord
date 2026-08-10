@@ -56,9 +56,15 @@ ever sent to Discord itself during the local OAuth code exchange.
 ## Running
 
 ```
-npm start        # the overlay
+npm start        # the overlay (from a checkout)
 npm run spike    # console-only RPC test harness (Phase 1), handy for debugging
 ```
+
+Where `config.json` and the cached `token.json` live depends on how you run:
+
+- **From a checkout** (`npm start` / `npm run spike`): the repo root.
+- **Installed build**: `%APPDATA%\CouchCord` on Windows. On first launch the
+  app creates `config.json` there and shows a dialog with the exact path.
 
 Join a voice channel in Discord and the HUD appears in the configured
 corner. It hides automatically when you leave voice.
@@ -146,6 +152,25 @@ Big Picture:
    it (works across servers).
 5. Disconnect → HUD hides. Panel → Voice Channels → rejoin.
 6. B closes the panel → the game receives controller input again.
+
+## Packaging a Windows build
+
+```
+npm run dist     # on Windows: dist/CouchCord-Setup-<version>.exe (NSIS installer)
+npm run pack     # unpacked build in dist/ for quick testing, any platform
+```
+
+electron-builder is already configured in `package.json` (`build` section):
+the installer embeds `assets/icon.ico`, ships only the runtime files, keeps
+SDL's native binaries outside the asar so they load, and skips the native
+rebuild step (both dependencies are prebuilt/pure JS). The installer is
+per-user — no admin prompt — and installed builds keep their settings in
+`%APPDATA%\CouchCord`.
+
+The build is unsigned; Windows SmartScreen will warn on first run of a
+downloaded installer ("More info" → "Run anyway"). Code signing is a
+paid-certificate step you can add later via electron-builder's `win.sign*`
+options.
 
 ## Brand
 

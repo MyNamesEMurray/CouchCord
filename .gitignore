@@ -1,4 +1,5 @@
 node_modules/
+dist/
 # Local credentials + cached Discord authorization — never commit these
 config.json
 token.json

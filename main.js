@@ -6,12 +6,24 @@
 process.env.SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS = process.env.SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS || "1";
 
 const path = require("node:path");
-const { app, BrowserWindow, ipcMain, screen, globalShortcut } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, screen, globalShortcut } = require("electron");
 const { loadConfig, tokenStore } = require("./src/config");
 const { DiscordBridge } = require("./src/discord");
 const { ControllerInput } = require("./src/controller");
 
-const config = loadConfig();
+let config;
+try {
+  config = loadConfig();
+} catch (err) {
+  // Installed builds have no console — a blocking dialog is the only way the
+  // first-run instructions actually reach the user.
+  console.error(err.message);
+  try {
+    dialog.showErrorBox("CouchCord", err.message);
+  } catch {}
+  app.exit(1);
+  process.exit(1);
+}
 
 const bridge = new DiscordBridge({
   clientId: config.clientId,
@@ -220,15 +232,15 @@ if (!app.requestSingleInstanceLock()) {
         logFail(`registering debug hotkey ${config.debugHotkey}`)(err);
       }
     }
-    // ponytail: registers the dev electron.exe + app dir as the login item,
-    // which is right for run-from-a-checkout. A packaged build should pass
-    // its own exe path instead.
     if (process.platform === "win32") {
-      app.setLoginItemSettings({
-        openAtLogin: !!config.launchOnLogin,
-        path: process.execPath,
-        args: [path.resolve(__dirname)],
-      });
+      const login = { openAtLogin: !!config.launchOnLogin };
+      if (!app.isPackaged) {
+        // Dev checkout: the login item must be electron.exe + the app dir.
+        // Installed builds register their own exe (the default).
+        login.path = process.execPath;
+        login.args = [path.resolve(__dirname)];
+      }
+      app.setLoginItemSettings(login);
     }
   });
   app.on("window-all-closed", () => app.quit());

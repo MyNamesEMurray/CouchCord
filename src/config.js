@@ -3,13 +3,22 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-// ponytail: config lives next to the sources because CouchCord runs from a
-// checkout on the HTPC. If this ever gets packaged (asar), move config.json
-// and token.json to Electron's app.getPath("userData").
+// Under plain Node (spike.js), require("electron") resolves to the binary's
+// path string instead of the API — treat that as "no Electron".
+let electronApp = null;
+try {
+  const electron = require("electron");
+  if (electron && typeof electron !== "string") electronApp = electron.app;
+} catch {}
+
 const ROOT = path.join(__dirname, "..");
-const CONFIG_PATH = path.join(ROOT, "config.json");
+// Installed builds keep the sources in a read-only asar, so the writable
+// files live in the per-user data dir (%APPDATA%/CouchCord on Windows).
+// Running from a checkout keeps everything in the repo root, as before.
+const DATA_DIR = electronApp && electronApp.isPackaged ? electronApp.getPath("userData") : ROOT;
+const CONFIG_PATH = path.join(DATA_DIR, "config.json");
 const EXAMPLE_PATH = path.join(ROOT, "config.example.json");
-const TOKEN_PATH = path.join(ROOT, "token.json");
+const TOKEN_PATH = path.join(DATA_DIR, "token.json");
 
 const DEFAULTS = {
   clientId: "",
@@ -22,35 +31,35 @@ const DEFAULTS = {
   launchOnLogin: false,
 };
 
-// Loads config.json, creating it from the example on first run. Exits the
-// process with instructions when credentials are missing — every entry point
-// needs them, so there is no point continuing.
+// Loads config.json, creating it from the example on first run. Throws an
+// Error with user-facing instructions when credentials are missing — the
+// caller decides how to show it (console for the spike, dialog for the app).
 function loadConfig() {
   if (!fs.existsSync(CONFIG_PATH)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.copyFileSync(EXAMPLE_PATH, CONFIG_PATH);
-    console.error(
-      "Created config.json. Fill in clientId and clientSecret from your Discord\n" +
-        "application (see README \"Discord setup\") and run this again."
+    throw new Error(
+      `Created ${CONFIG_PATH}\n\n` +
+        'Fill in clientId and clientSecret from your Discord application\n' +
+        '(see README "Discord setup") and start CouchCord again.'
     );
-    process.exit(1);
   }
 
   let parsed;
   try {
     parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
   } catch (err) {
-    console.error(`config.json is not valid JSON: ${err.message}`);
-    process.exit(1);
+    throw new Error(`${CONFIG_PATH} is not valid JSON: ${err.message}`);
   }
 
   const config = { ...DEFAULTS, ...parsed };
   if (!config.clientId || !config.clientSecret) {
-    console.error(
-      "config.json is missing clientId and/or clientSecret. Create a Discord\n" +
-        "application at https://discord.com/developers/applications and copy both\n" +
-        "values in (see README \"Discord setup\")."
+    throw new Error(
+      `${CONFIG_PATH}\n\n` +
+        "is missing clientId and/or clientSecret. Create a Discord application\n" +
+        "at https://discord.com/developers/applications and copy both values in\n" +
+        '(see README "Discord setup").'
     );
-    process.exit(1);
   }
   return config;
 }

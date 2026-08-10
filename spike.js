@@ -10,7 +10,13 @@ const readline = require("node:readline");
 const { loadConfig, tokenStore } = require("./src/config");
 const { DiscordBridge } = require("./src/discord");
 
-const config = loadConfig();
+let config;
+try {
+  config = loadConfig();
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
 const bridge = new DiscordBridge({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
