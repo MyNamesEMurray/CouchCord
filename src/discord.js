@@ -2,6 +2,7 @@
 
 const { EventEmitter } = require("node:events");
 const { Client } = require("@xhayper/discord-rpc");
+const { FramingFixedIPCTransport } = require("./ipc-fix");
 
 // Scopes: `rpc` for guild/channel listing, `rpc.voice.read` for voice state +
 // speaking events, `rpc.voice.write` for mute/deafen/channel commands.
@@ -31,7 +32,23 @@ const RETRY_MAX_MS = 30000;
 // So the setup docs have users register http://127.0.0.1 on the app, and we
 // omit the parameter everywhere — including the token exchange, matching the
 // classic RPC flow.
-const TOKEN_URL = "https://discord.com/api/oauth2/token";
+// Env override exists for the offline test harness only.
+const TOKEN_URL = process.env.COUCHCORD_OAUTH_URL || "https://discord.com/api/oauth2/token";
+
+// Any RPC request that gets no answer within this window is treated as
+// failed — a stalled pipe must surface as an error, never as a hang.
+const REQUEST_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} timed out`)), REQUEST_TIMEOUT_MS);
+      if (timer.unref) timer.unref();
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 // Errors from @discordjs/rest carry the useful part in rawError; RPC errors
 // in code/message. Flatten whatever we got into one loggable line.
@@ -205,7 +222,7 @@ class DiscordBridge extends EventEmitter {
     const client = new Client({
       clientId: this.clientId,
       clientSecret: this.clientSecret,
-      transport: { type: "ipc" },
+      transport: { type: FramingFixedIPCTransport },
     });
     this._client = client;
     client.on("disconnected", () => this._onDisconnected(client));
@@ -299,7 +316,7 @@ class DiscordBridge extends EventEmitter {
   }
 
   async _subscribeAll() {
-    for (const evt of GLOBAL_EVENTS) await this._client.subscribe(evt);
+    for (const evt of GLOBAL_EVENTS) await withTimeout(this._client.subscribe(evt), `subscribe ${evt}`);
     const settings = await this._req("GET_VOICE_SETTINGS");
     this.self = { mute: !!settings.mute, deaf: !!settings.deaf };
     await this._refreshChannel();
@@ -382,7 +399,7 @@ class DiscordBridge extends EventEmitter {
         this.channel = { id: channel.id, name: channel.name, guildId: channel.guild_id || null };
         if (channel.guild_id) this.lastGuildId = channel.guild_id;
         for (const evt of CHANNEL_EVENTS) {
-          this._channelSubs.push(await client.subscribe(evt, { channel_id: channel.id }));
+          this._channelSubs.push(await withTimeout(client.subscribe(evt, { channel_id: channel.id }), `subscribe ${evt}`));
         }
         for (const vs of channel.voice_states || []) this._upsertMember(vs);
         this._emitUpdate();
@@ -408,7 +425,7 @@ class DiscordBridge extends EventEmitter {
 
   async _req(cmd, args) {
     if (!this._client) throw new Error("not connected to Discord");
-    const res = await this._client.request(cmd, args);
+    const res = await withTimeout(this._client.request(cmd, args), cmd);
     return res && typeof res === "object" && "cmd" in res ? res.data : res;
   }
 
