@@ -27,6 +27,8 @@ const DEFAULTS = {
   chordHoldMs: 400,
   hudCorner: "top-right",
   hudScale: 1.0,
+  hudOpacity: 0.85,
+  hudMode: "full", // full | compact | speaking
   debugHotkey: "F10",
   launchOnLogin: false,
 };

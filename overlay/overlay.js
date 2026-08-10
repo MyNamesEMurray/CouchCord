@@ -207,10 +207,14 @@ function renderHud() {
   hud.classList.toggle("hidden", !show);
   if (!show) return;
 
+  hud.style.background = `rgba(17, 19, 27, ${state.hudOpacity ?? 0.85})`;
+  hud.classList.toggle("hud-compact", state.hudMode === "compact");
+
   hudChannel.textContent = state.channel.name;
   hudFlags.textContent = state.self.deaf ? "🙉" : state.self.mute ? "🔇" : "";
 
-  hudMembers.replaceChildren(...state.members.map(memberRow));
+  const members = state.hudMode === "speaking" ? state.members.filter((m) => m.speaking) : state.members;
+  hudMembers.replaceChildren(...members.map(memberRow));
 }
 
 function memberRow(m) {
@@ -398,6 +402,16 @@ function renderSettingsView() {
       label: "Show HUD in voice",
       value: state.hudHidden ? "Off" : "On",
       act: () => api.action("toggleHud"),
+    },
+    {
+      label: "HUD style",
+      value: { full: "Everyone", compact: "Compact", speaking: "Speaking only" }[state.hudMode] || "Everyone",
+      act: () => api.action("setSetting", { key: "hudMode", value: cycle(["full", "compact", "speaking"], state.hudMode || "full") }),
+    },
+    {
+      label: "HUD opacity",
+      value: `${Math.round((state.hudOpacity ?? 0.85) * 100)}%`,
+      act: () => api.action("setSetting", { key: "hudOpacity", value: cycle([0.5, 0.65, 0.85, 0.95], state.hudOpacity ?? 0.85) }),
     },
     {
       label: "Launch on login",

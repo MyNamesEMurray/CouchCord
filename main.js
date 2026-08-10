@@ -117,11 +117,13 @@ function runOverlay() {
     chordHoldMs: config.chordHoldMs,
   });
 
-  const HUD_W = 300;
-  const HUD_H = 420;
-  const PANEL_W = 660;
-  const PANEL_H = 640;
-  const MARGIN = 16;
+  const HUD_W = 320;
+  const HUD_H = 440;
+  const PANEL_W = 700;
+  const PANEL_H = 680;
+  // The renderer pads the window interior for shadow room, so the window
+  // itself hugs the screen edge more closely.
+  const MARGIN = 4;
 
   let win = null;
   let hudHidden = false;
@@ -216,6 +218,8 @@ function runOverlay() {
       panelOpen: ui.panelOpen,
       hudCorner: config.hudCorner,
       hudScale: config.hudScale,
+      hudOpacity: config.hudOpacity,
+      hudMode: config.hudMode,
       controllerFamily: controllers.activeFamily,
       chord: config.chord,
       chordHoldMs: config.chordHoldMs,
@@ -405,6 +409,8 @@ function runOverlay() {
         const allowed = {
           hudCorner: ["top-left", "top-right", "bottom-left", "bottom-right"],
           hudScale: [0.8, 1, 1.25, 1.5, 1.75, 2],
+          hudOpacity: [0.5, 0.65, 0.85, 0.95],
+          hudMode: ["full", "compact", "speaking"],
           chordHoldMs: [250, 400, 600, 800],
           launchOnLogin: [true, false],
         };

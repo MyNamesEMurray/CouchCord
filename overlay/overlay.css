@@ -29,7 +29,8 @@ body {
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 0.25rem;
+  /* Room for the card's drop shadow — the window edge clips anything past it. */
+  padding: 1.5rem;
 }
 
 body.corner-bottom {
@@ -122,6 +123,21 @@ li.speaking .name {
   font-weight: 600;
 }
 
+/* Compact HUD: names only, tighter rows */
+#hud.hud-compact .avatar {
+  display: none;
+}
+
+#hud.hud-compact #hud-members li {
+  font-size: 0.95rem;
+  padding: 0.12rem 0.3rem;
+  gap: 0.4rem;
+}
+
+#hud.hud-compact li.speaking .name {
+  color: #2fd98c;
+}
+
 .mem-flags {
   margin-left: auto;
   color: #f23f43;
@@ -133,7 +149,7 @@ li.speaking .name {
 body.panel-open {
   justify-content: center;
   align-items: center;
-  padding: 0.5rem;
+  padding: 2rem; /* the panel's shadow is bigger than the HUD's */
 }
 
 #panel {
@@ -372,7 +388,7 @@ body.panel-open {
 body.setup-mode {
   justify-content: center;
   align-items: center;
-  padding: 0.5rem;
+  padding: 1.5rem;
 }
 
 #setup {
