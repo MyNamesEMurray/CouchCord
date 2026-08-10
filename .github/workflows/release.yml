@@ -1,0 +1,51 @@
+name: Build installer
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # manual test runs — builds the installer as a workflow artifact
+
+permissions:
+  contents: write # lets the job attach the installer to the release
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The installer's version comes from package.json — catch a mismatched
+      # tag before shipping an exe that claims a different version.
+      - name: Check tag matches package.json version
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          tag="${{ github.event.release.tag_name }}"
+          if [ "$pkg" != "$tag" ]; then
+            echo "Release tag $tag does not match package.json version $pkg." >&2
+            echo "Bump the version in package.json (npm version --no-git-tag-version) and retag." >&2
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - run: npm run dist
+
+      - name: Attach installer to the release
+        if: github.event_name == 'release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/CouchCord-Setup-*.exe --clobber
+
+      - name: Upload installer as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CouchCord-Setup
+          path: dist/CouchCord-Setup-*.exe
