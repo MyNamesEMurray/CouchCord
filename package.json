@@ -1,0 +1,18 @@
+{
+  "name": "couchcord",
+  "version": "0.1.0",
+  "description": "Controller-summoned Discord voice overlay for couch gaming on Windows HTPCs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "spike": "node spike.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@kmamal/sdl": "^0.11.13",
+    "@xhayper/discord-rpc": "^1.3.4"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0"
+  }
+}

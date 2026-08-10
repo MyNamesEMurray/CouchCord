@@ -1,0 +1,10 @@
+{
+  "clientId": "",
+  "clientSecret": "",
+  "chord": ["back", "start"],
+  "chordHoldMs": 400,
+  "hudCorner": "top-right",
+  "hudScale": 1.0,
+  "debugHotkey": "F10",
+  "launchOnLogin": false
+}
