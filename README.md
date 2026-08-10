@@ -16,9 +16,11 @@ calls the Discord HTTP API on your behalf.
 
 ## Status
 
-Phase 1 (RPC spike) is done: `npm run spike` connects to the running Discord
-client, streams voice membership + speaking events to the console, and
-toggles mute/deafen from keypresses. The overlay UI comes in later phases.
+Phase 2 (passive HUD) is done: `npm start` floats a click-through,
+always-on-top corner HUD showing voice channel members with live speaking
+indicators. It appears when you join voice and hides when you leave.
+Controller summon + the interactive panel come in later phases.
+`npm run spike` (Phase 1) remains as a console debugging tool.
 
 ## Requirements
 
