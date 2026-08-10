@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- CouchCord app icon: the Speaking Couch on a midnight tile. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="32%" r="85%">
+      <stop offset="0%" stop-color="#1E2447"/>
+      <stop offset="100%" stop-color="#121631"/>
+    </radialGradient>
+  </defs>
+  <rect x="8" y="8" width="496" height="496" rx="120" fill="url(#bg)"/>
+  <g fill="#FF6B4A">
+    <rect x="116" y="212" width="240" height="140" rx="42"/>
+    <rect x="76"  y="268" width="66"  height="126" rx="33"/>
+    <rect x="330" y="268" width="66"  height="126" rx="33"/>
+    <rect x="100" y="322" width="272" height="72"  rx="34"/>
+    <rect x="128" y="394" width="44"  height="26"  rx="12"/>
+    <rect x="300" y="394" width="44"  height="26"  rx="12"/>
+  </g>
+  <rect x="228" y="330" width="16" height="56" rx="8" fill="#121631" opacity="0.45"/>
+  <g stroke="#2FD98C" stroke-width="30" stroke-linecap="round" fill="none">
+    <path d="M 356 152 A 60 60 0 0 1 416 212"/>
+    <path d="M 356 106 A 106 106 0 0 1 462 212"/>
+  </g>
+</svg>

@@ -100,6 +100,7 @@ function createWindow() {
     alwaysOnTop: true,
     hasShadow: false,
     title: "CouchCord",
+    icon: path.join(__dirname, "assets", "icon.png"),
     webPreferences: {
       preload: path.join(__dirname, "overlay", "preload.js"),
       contextIsolation: true,

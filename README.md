@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="CouchCord — Discord voice, from the couch." width="760">
+</p>
+
 # CouchCord
 
 A controller-summoned Discord voice overlay for couch gaming on a Windows
@@ -142,6 +146,35 @@ Big Picture:
    it (works across servers).
 5. Disconnect → HUD hides. Panel → Voice Channels → rejoin.
 6. B closes the panel → the game receives controller input again.
+
+## Brand
+
+The mark is the **Speaking Couch**: a coral couch with mint voice arcs —
+voice chat, from the sofa. Masters live in `assets/` (`logo.svg` is the
+transparent mark, `icon.svg` the tiled app icon); `npm run assets`
+regenerates `icon.png`, `icon.ico` (16–256 px, Windows-ready) and
+`banner.png` from them using Electron as the rasterizer — no extra tooling.
+
+| Token | Hex | Use |
+| --- | --- | --- |
+| Couch Coral | `#FF6B4A` | Mark, focus ring, accents, "Cord" in the wordmark |
+| Live Mint | `#2FD98C` | Speaking indicators, connected states, voice arcs |
+| Midnight | `#121631` → `#1E2447` | Icon tile / brand backgrounds |
+| Panel Night | `#11131B` | In-app surfaces |
+| Cream | `#F5EFE6` | Wordmark "Couch", titles on dark |
+| Danger Red | `#F23F43` | Disconnect/quit accents, mute flags |
+
+Wordmark: **Nunito Black**, tight tracking, two-tone (`Couch` cream, `Cord`
+coral). Nunito is bundled in `assets/fonts/` under the SIL Open Font
+License. Tagline: *"Discord voice, from the couch."*
+
+Intentionally distinct from Discord's own branding: no blurple, no Clyde,
+no Discord logo anywhere. When publishing, keep it that way — and keep the
+disclaimer below.
+
+> CouchCord is an unofficial companion app. It is not affiliated with,
+> endorsed by, or sponsored by Discord Inc. "Discord" is a trademark of
+> Discord Inc.
 
 ## Development notes
 

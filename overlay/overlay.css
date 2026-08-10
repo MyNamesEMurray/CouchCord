@@ -1,5 +1,13 @@
 /* 10-foot styling: everything in rem so hudScale can resize the whole UI by
-   changing the root font size. */
+   changing the root font size.
+   Brand palette: Couch Coral #ff6b4a (accent/focus), Live Mint #2fd98c
+   (speaking/positive), midnight surfaces, cream #f5efe6 for the wordmark. */
+
+@font-face {
+  font-family: "Nunito";
+  src: url("../assets/fonts/Nunito-Black.ttf");
+  font-weight: 900;
+}
 
 * {
   margin: 0;
@@ -80,7 +88,7 @@ body.corner-bottom {
   width: 1.8rem;
   height: 1.8rem;
   border-radius: 50%;
-  background: #5865f2;
+  background: #ff6b4a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,8 +106,8 @@ body.corner-bottom {
 }
 
 li.speaking .avatar {
-  border-color: #23a55a;
-  box-shadow: 0 0 0.6rem rgba(35, 165, 90, 0.85);
+  border-color: #2fd98c;
+  box-shadow: 0 0 0.6rem rgba(47, 217, 140, 0.85);
 }
 
 .name {
@@ -146,10 +154,23 @@ body.panel-open {
   gap: 0.8rem;
 }
 
+.panel-header .brand-mark {
+  width: 2.1rem;
+  height: auto;
+  align-self: center;
+  flex: none;
+}
+
 .panel-title {
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #f5efe6;
+}
+
+.panel-title .brand-b {
+  color: #ff6b4a;
 }
 
 .panel-status {
@@ -177,7 +198,7 @@ body.panel-open {
 }
 
 .chip.speaking {
-  border-color: #23a55a;
+  border-color: #2fd98c;
   color: #fff;
 }
 
@@ -208,8 +229,8 @@ body.panel-open {
 
 .big-btn.focused,
 .list-rows li.focused {
-  border-color: #5865f2;
-  background: rgba(88, 101, 242, 0.22);
+  border-color: #ff6b4a;
+  background: rgba(255, 107, 74, 0.18);
   color: #fff;
 }
 
@@ -280,7 +301,7 @@ body.panel-open {
   flex: none;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #23a55a;
+  color: #2fd98c;
 }
 
 .list-hint {
