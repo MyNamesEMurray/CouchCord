@@ -148,8 +148,12 @@ Created from `config.example.json` on first run.
   personal use, not distribution.
 - Very exotic pads that SDL's controller database doesn't know stay
   invisible to CouchCord.
-- No text chat, no notifications, no settings UI — `config.json` is the
-  settings UI.
+- CouchCord can't turn Discord's own in-game overlay on or off — Discord
+  exposes no API for that setting. If you don't want both overlays showing
+  voice info, disable Discord's once under **User Settings → Game Overlay**
+  (it stays off). They don't otherwise conflict — Discord's overlay injects
+  into the game, CouchCord floats above it.
+- No text chat and no notifications.
 
 ## Troubleshooting
 
