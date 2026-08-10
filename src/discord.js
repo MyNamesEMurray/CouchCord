@@ -21,11 +21,16 @@ const GUILD_VOICE = 2; // channel type
 const RETRY_MIN_MS = 2000;
 const RETRY_MAX_MS = 30000;
 
-// Discord now requires a redirect_uri in RPC authorization requests (the
-// client errors with 'invalid_request: missing "redirect_uri"' without one),
-// and the value must be registered on the app's OAuth2 page — the README and
-// setup wizard tell users to add exactly this one.
-const REDIRECT_URI = "http://127.0.0.1";
+// Discord's RPC authorization has a quirky pair of requirements (both
+// observed in the field, August 2026):
+//   - the APPLICATION must have at least one Redirect URI registered, or
+//     AUTHORIZE fails with 'invalid_request: missing "redirect_uri"';
+//   - but the AUTHORIZE request itself must NOT include a redirect_uri, or
+//     it fails with 'Redirect URI cannot be used in the RPC OAuth2
+//     Authorization flow'.
+// So the setup docs have users register http://127.0.0.1 on the app, and we
+// omit the parameter everywhere — including the token exchange, matching the
+// classic RPC flow.
 const TOKEN_URL = "https://discord.com/api/oauth2/token";
 
 // Errors from @discordjs/rest carry the useful part in rawError; RPC errors
@@ -152,9 +157,9 @@ class DiscordBridge extends EventEmitter {
     this._retryDelay = Math.min(this._retryDelay * 2, RETRY_MAX_MS);
   }
 
-  // OAuth token grants, done with fetch instead of the RPC library: Discord
-  // requires redirect_uri in both the RPC AUTHORIZE args and the code
-  // exchange now, and the library supports neither. Saves the (rotated)
+  // OAuth token grants, done with fetch instead of the RPC library's REST
+  // internals: gives us the exact Discord error on failure and lets us
+  // persist the rotated refresh token right at the exchange. Saves the
   // refresh token as a side effect.
   async _fetchToken(params) {
     const res = await fetch(TOKEN_URL, {
@@ -227,7 +232,6 @@ class DiscordBridge extends EventEmitter {
         const res = await client.request("AUTHORIZE", {
           scopes: SCOPES,
           client_id: this.clientId,
-          redirect_uri: REDIRECT_URI,
           prompt: "consent",
         });
         const code = res && res.data ? res.data.code : null;
@@ -235,7 +239,6 @@ class DiscordBridge extends EventEmitter {
         accessToken = await this._fetchToken({
           grant_type: "authorization_code",
           code,
-          redirect_uri: REDIRECT_URI,
         });
         await client.login({ scopes: SCOPES, accessToken });
       }

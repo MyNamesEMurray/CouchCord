@@ -140,9 +140,10 @@ Created from `config.example.json` on first run.
   (not the browser client). CouchCord reconnects by itself, including after
   Discord restarts or updates.
 - **"Discord authorization failed"** — the usual causes, in order:
-  1. `invalid_request: missing "redirect_uri"` or an invalid-redirect
-     error: your Discord application has **no Redirect URI registered** —
-     add exactly `http://127.0.0.1` under OAuth2 → Redirects and save.
+  1. `invalid_request: missing "redirect_uri"`: your Discord application
+     has **no Redirect URI registered** — add exactly `http://127.0.0.1`
+     under OAuth2 → Redirects and save. (Discord requires the app to have
+     one registered even though the RPC flow never uses it directly.)
   2. The Discord desktop app is logged into a **different account** than
      the one that owns your Discord application (they must match).
   3. The **Client Secret** was pasted wrong (use Reset Secret on the
